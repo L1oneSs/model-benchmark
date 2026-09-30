@@ -1,0 +1,103 @@
+@use '../styles/variables' as v;
+@use '../styles/mixins' as m;
+
+.run-options {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.42fr) minmax(0, 1fr);
+  gap: 1.1rem;
+  margin: 0;
+
+  &__section {
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid v.$border;
+    border-radius: v.$radius-sm;
+    background: v.$surface;
+  }
+
+  &__section--models {
+    background: v.$page-bg;
+  }
+
+  &__title {
+    margin: 0 0 0.85rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: v.$text;
+  }
+
+  &__series {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+
+    label { @include m.label; }
+
+    input[type='number'] {
+      font: inherit;
+      width: 5.5rem;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid v.$border;
+      border-radius: v.$radius-sm;
+    }
+
+    &--checkbox {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 0.5rem;
+      max-width: none;
+
+      label {
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: v.$text;
+        display: flex;
+        flex-direction: column;
+
+        span {
+          font-weight: 400;
+          font-size: 0.8rem;
+          color: v.$text-muted;
+        }
+      }
+
+      input { margin-top: 0.3rem; }
+    }
+  }
+
+  &__choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    color: v.$text-muted;
+    font-size: 0.9rem;
+
+    label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      cursor: pointer;
+      border: 1px solid v.$border;
+      border-radius: 7px;
+      background: v.$surface;
+      padding: 0.48rem 0.7rem;
+      font-size: 0.78rem;
+      &:has(input:checked) { border-color: #aabbd1; background: v.$accent-soft; color: v.$accent; }
+    }
+  }
+}
+
+@media (max-width: 720px) {
+  .run-options { grid-template-columns: 1fr; gap: 0.9rem; }
+  .run-options__series { grid-template-columns: 1fr; }
+}

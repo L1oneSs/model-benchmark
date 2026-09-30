@@ -1,0 +1,171 @@
+@use '../styles/variables' as v;
+@use '../styles/mixins' as m;
+
+.env {
+  @include m.card;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  &__toggle {
+    @include m.button-base;
+    flex: 1 1 auto;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-weight: 600;
+    color: v.$text;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-start;
+  }
+
+  &__chevron {
+    font-size: 0.7rem;
+    color: v.$text-muted;
+  }
+
+  &__save {
+    @include m.button-base;
+    background: v.$accent-soft;
+    border: 1px solid transparent;
+    color: v.$accent;
+    font-size: 0.83rem;
+    padding: 0.35rem 0.8rem;
+  }
+
+  &__body {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.4fr);
+    gap: 1.5rem;
+    align-items: stretch;
+  }
+
+  &__overview { display: grid; gap: 1rem; min-width: 0; }
+  &__section {
+    padding: 1rem;
+    border: 1px solid v.$border;
+    border-radius: v.$radius-sm;
+    background: v.$surface;
+  }
+  &__heading { margin: 0 0 0.85rem; font-size: 0.9rem; font-weight: 600; }
+  &__section--backends { background: v.$page-bg; }
+  &__section--nano { background: v.$accent-soft; border-color: #cdd9e8; }
+  &__hint { margin: -0.35rem 0 0.85rem; font-size: 0.8rem; color: v.$text-muted; }
+  &__backends { display: flex; flex-wrap: wrap; gap: 0.5rem; font-size: 0.83rem; }
+  &__backend {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.65rem;
+    background: v.$surface;
+    border: 1px solid v.$border;
+    border-radius: v.$radius-sm;
+    font-weight: 500;
+  }
+  &__dot { width: 6px; height: 6px; border-radius: 50%; background: v.$ok; }
+  &__nano-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+
+    .env__heading { margin-bottom: 0; }
+  }
+  &__nano-status {
+    margin: 0.85rem 0 0;
+    color: v.$text-muted;
+    font-size: 0.86rem;
+  }
+  &__nano-progress {
+    width: 100%;
+    height: 7px;
+    margin-top: 0.8rem;
+    accent-color: v.$accent;
+  }
+  &__nano-action {
+    @include m.button-base;
+    margin-top: 0.85rem;
+    width: 100%;
+    border: 1px solid v.$accent;
+    background: v.$accent;
+    color: #fff;
+  }
+  &__api-section {
+    min-width: 0;
+    min-height: 100%;
+    overflow-x: auto;
+    padding: 1rem;
+    border: 1px solid v.$border;
+    border-radius: v.$radius-sm;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__facts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.65rem 1rem;
+    margin: 0;
+    font-size: 0.86rem;
+
+    dt { color: v.$text-muted; }
+    dd { margin: 0; overflow-wrap: anywhere; }
+  }
+
+  &__warn { color: v.$warn; }
+
+  &__apis {
+    width: 100%;
+    height: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+
+    caption {
+      @include m.label;
+      text-align: left;
+      padding-bottom: 0.85rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.6rem 0.5rem;
+      border-bottom: 1px solid v.$border;
+    }
+
+    thead th {
+      @include m.label;
+      border-bottom-width: 2px;
+    }
+
+    tbody th { font-weight: 500; }
+    tbody tr:last-child th, tbody tr:last-child td { border-bottom: none; }
+    tbody tr { height: 1%; }
+  }
+
+  &__backing { color: v.$text-muted; }
+
+  &__note {
+    margin: 0.8rem 0 0;
+    font-size: 0.85rem;
+    color: v.$text-muted;
+  }
+}
+
+@media (max-width: 860px) {
+  .env__body { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .env__facts { grid-template-columns: 1fr; gap: 0.25rem; }
+  .env__facts dd { margin-bottom: 0.6rem; }
+}

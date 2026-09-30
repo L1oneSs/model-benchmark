@@ -1,0 +1,57 @@
+@use '../styles/variables' as v;
+@use '../styles/mixins' as m;
+
+.rag {
+  @include m.card;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  &__header {
+    display: flex; align-items: center; gap: 0.85rem; padding: 1.35rem 1.75rem;
+    h2 { font-size: 1rem; margin: 0 0 0.25rem; letter-spacing: -0.02em; }
+    p { margin: 0; color: v.$text-muted; font-size: 0.78rem; }
+  }
+  &__avatar { display: grid; place-items: center; width: 42px; height: 42px; flex-shrink: 0; background: v.$accent-soft; border-radius: 13px; color: v.$accent; }
+  &__counter { margin-left: auto; white-space: nowrap; font-size: 0.73rem; color: v.$text-muted; font-variant-numeric: tabular-nums; padding: 0.3rem 0.6rem; border: 1px solid v.$border; border-radius: 7px; }
+  &__toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.75rem 1.75rem; border-block: 1px solid v.$border; background: #fafbfc; button[aria-pressed='true'] { color: v.$accent; background: v.$accent-soft; border-color: #afc0d8; } }
+  &__note { color: v.$text-muted; font-size: 0.8rem; }
+  &__thinking-note { margin: 0; padding: 0.6rem 1.75rem; background: v.$accent-soft; }
+  &__thread { min-height: 390px; max-height: 62vh; overflow-y: auto; display: flex; flex-direction: column; gap: 1.75rem; padding: 2rem; @include m.scrollbar; }
+  &__placeholder { margin: auto; padding: 1rem 0; text-align: center; width: 100%; max-width: 790px; h3 { font-size: clamp(1.3rem, 2vw, 1.75rem); letter-spacing: -0.045em; margin: 0.75rem 0; } > p { color: v.$text-muted; font-size: 0.86rem; line-height: 1.7; } }
+  &__welcome-icon { display: inline-grid; place-items: center; width: 64px; height: 64px; background: #edf1f7; color: v.$accent; border: 1px solid #dbe3ef; border-radius: 20px; margin-bottom: 1.25rem; transform: rotate(-6deg); svg { transform: rotate(6deg); } }
+  &__suggestions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; margin-top: 1.75rem; button { @include m.button-base; text-align: left; justify-content: space-between; align-items: start; background: #fff; border: 1px solid v.$border; color: v.$text; font-weight: 400; font-size: 0.8rem; line-height: 1.6; padding: 1rem; svg { flex-shrink: 0; margin-top: 0.2rem; color: v.$accent; } &:hover:not(:disabled) { background: v.$accent-soft; border-color: #afc0d8; } } }
+  &__turn { display: flex; flex-direction: column; gap: 1.1rem; }
+  &__question { align-self: flex-end; max-width: 80%; margin: 0; padding: 0.85rem 1.2rem; border-radius: 16px 16px 4px 16px; background: #edf1f7; color: v.$text; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.9rem; }
+  &__answer { max-width: 90%; padding: 0.3rem 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.9rem; line-height: 1.8; p:last-child { margin-bottom: 0; } }
+  &__speaker { display: flex; align-items: center; gap: 0.4rem; color: v.$accent; font-size: 0.72rem; font-weight: 600; margin-bottom: 0.65rem; }
+  &__thinking { border-left: 2px solid #c4cfe0; padding: 0.2rem 0 0.2rem 0.9rem; margin: 0 0 1rem; color: v.$text-muted; font-size: 0.8rem; summary { cursor: pointer; } p { max-height: 15rem; overflow-y: auto; padding-top: 0.7rem; } }
+  &__sources { margin-top: 1rem; padding: 0.65rem 0.9rem; border: 1px solid v.$border; border-radius: 10px; font-size: 0.78rem; background: #fafbfc; summary { cursor: pointer; color: v.$accent; } ul { display: grid; gap: 1rem; padding-left: 1rem; margin: 1rem 0 0; color: v.$text-muted; } }
+  &__source-type { @include m.label; font-size: 0.65rem; }
+  &__score { font-family: v.$mono; font-size: 0.7rem; }
+  &__model { color: v.$text-muted; font-size: 0.7rem; margin: 0.85rem 0 0; }
+  &__error { color: v.$error; font-size: 0.83rem; border: 1px solid #eedbd5; background: #fff7f3; border-radius: 9px; padding: 0.8rem 1rem; margin: 0.75rem 1.75rem; }
+  &__form { margin: 0 1.75rem; padding: 0.9rem 1rem 0.7rem; border: 1px solid #cbd4e1; border-radius: 14px; box-shadow: 0 3px 12px #23345207; &:focus-within { border-color: v.$accent; box-shadow: 0 0 0 3px v.$accent-soft; } textarea { display: block; width: 100%; min-height: 60px; max-height: 190px; resize: vertical; border: 0; padding: 0; background: transparent; font: inherit; font-size: 0.9rem; outline: none; &:disabled { opacity: 0.65; } } }
+  &__composer-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 0.65rem; }
+  &__composer-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; button[aria-pressed='true'] { background: v.$accent-soft; color: v.$accent; border-color: #afc0d8; } }
+  &__send { @include m.button-base; background: v.$accent; border: 1px solid v.$accent; color: #fff; font-size: 0.8rem; &:hover:not(:disabled) { background: #354d70; } }
+  &__reindex { @include m.button-base; padding: 0.4rem 0.7rem; border: 1px solid v.$border; background: v.$surface; color: v.$text-muted; font-size: 0.73rem; &:hover:not(:disabled) { color: v.$text; background: v.$surface-muted; } }
+  &__delete { &:hover:not(:disabled) { color: v.$error; background: #fff3ee; border-color: #e3c4b9; } }
+  &__footnote { margin: 0.8rem 1.75rem 1.2rem; text-align: center; font-size: 0.68rem; color: v.$text-muted; }
+}
+@media (max-width: 680px) {
+  .rag {
+    &__header { padding: 1rem; flex-wrap: wrap; }
+    &__header > div { flex: 1; min-width: 160px; }
+    &__counter { margin-left: 0; }
+    &__toolbar { padding: 0.7rem 1rem; }
+    &__thread { padding: 1.2rem; min-height: 330px; }
+    &__suggestions { grid-template-columns: 1fr; margin-top: 1rem; }
+    &__suggestions button { padding: 0.65rem 0.9rem; }
+    &__form { margin: 0 1rem; }
+    &__composer-footer > span { display: none; }
+    &__composer-footer { justify-content: flex-end; }
+    &__answer { max-width: 100%; }
+    &__delete { margin-left: 0; }
+  }
+}

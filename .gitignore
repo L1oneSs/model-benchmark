@@ -1,0 +1,10 @@
+.env
+node_modules/
+dist/
+__pycache__/
+*.py[cod]
+.venv/
+frontend/public/models/*/
+!frontend/public/models/README.md
+exports/
+.DS_Store

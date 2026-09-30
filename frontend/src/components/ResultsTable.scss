@@ -1,0 +1,223 @@
+@use '../styles/variables' as v;
+@use '../styles/mixins' as m;
+
+.results {
+  @include m.card;
+  padding: 1.25rem 1.4rem 1rem;
+  margin-bottom: 1.75rem;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+
+    h3 { margin: 0; }
+  }
+
+  &__export {
+    font-size: 0.78rem;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid v.$border;
+    border-radius: 8px;
+    color: v.$text;
+    white-space: nowrap;
+
+    &:hover { background: v.$surface-muted; text-decoration: none; }
+
+    &--primary {
+      background: v.$accent;
+      border-color: v.$accent;
+      color: #fff;
+
+      &:hover { background: #354d70; }
+    }
+  }
+
+  &__error {
+    color: v.$error;
+    font-size: 0.85rem;
+  }
+
+  &__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    margin-bottom: 1rem;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      color: v.$text-muted;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    select {
+      min-width: 9rem;
+      padding: 0.4rem 0.5rem;
+      border: 1px solid v.$border;
+      border-radius: v.$radius-sm;
+      background: v.$surface;
+      color: v.$text;
+      font: inherit;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+  }
+
+  &__summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  &__card {
+    background: v.$surface-muted;
+    border-radius: v.$radius-sm;
+    padding: 0.9rem 1rem;
+    border: 1px solid v.$border;
+  }
+
+  &__card-title { margin-bottom: 0.5rem; }
+
+  &__model {
+    font-size: 0.82rem;
+    color: v.$text-muted;
+    margin-bottom: 0.6rem;
+  }
+
+  &__metrics {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.6rem 1rem;
+    margin: 0;
+    font-size: 0.86rem;
+
+    dt { color: v.$text-muted; }
+    dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 500; }
+  }
+
+  &__empty {
+    color: v.$text-muted;
+    font-style: italic;
+    margin: 0;
+  }
+
+  &__table {
+    min-width: 980px;
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+
+    th, td {
+      text-align: left;
+      padding: 0.85rem 0.7rem;
+      border-bottom: 1px solid v.$border;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+    }
+
+    th {
+      @include m.label;
+      border-bottom-width: 1px;
+      background: #f8f9fb;
+      font-size: 0.67rem;
+      white-space: nowrap;
+    }
+
+    .results__sort {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-transform: inherit;
+      letter-spacing: inherit;
+      cursor: pointer;
+    }
+
+    td { font-variant-numeric: tabular-nums; }
+    tbody tr:hover { background: #fafbfc; }
+  }
+
+  &__col--approach { width: 9rem; }
+  &__col--settings { width: 15rem; }
+  &__col--inference_ms { width: 9rem; }
+  &__col--first_token_ms { width: 11rem; }
+  &__col--memory_mb { width: 8rem; }
+  &__col--output { width: 22rem; }
+  &__col--created_at { width: 12rem; }
+
+  &__caption {
+    text-align: left;
+    @include m.label;
+    padding-bottom: 0.5rem;
+  }
+
+  &__row--muted td { color: v.$text-muted; }
+
+  &__empty-cell {
+    text-align: center;
+    color: v.$text-muted;
+    font-style: italic;
+    padding: 1.5rem 0;
+  }
+
+  &__error-text {
+    font-size: 0.8rem;
+    color: v.$text-muted;
+  }
+
+  &__time { white-space: nowrap; color: v.$text-muted; }
+
+  &__pager {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    padding-top: 0.9rem;
+  }
+
+  &__page {
+    @include m.button-base;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border-radius: 7px;
+    border: 1px solid v.$border;
+    background: v.$surface;
+    font-size: 0.82rem;
+
+    &--wide {
+      width: auto;
+      min-width: 4.8rem;
+      padding: 0 0.7rem;
+    }
+
+    &--active {
+      background: v.$accent-soft;
+      border-color: v.$accent;
+      color: v.$accent;
+      font-weight: 600;
+    }
+  }
+
+  &__ellipsis {
+    min-width: 1.2rem;
+    text-align: center;
+    color: v.$text-muted;
+  }
+
+  &__total {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: v.$text-muted;
+  }
+}

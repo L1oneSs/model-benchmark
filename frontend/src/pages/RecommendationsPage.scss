@@ -1,0 +1,31 @@
+@use '../styles/variables' as v;
+@use '../styles/mixins' as m;
+
+.subtabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem;
+  margin-bottom: 1.5rem;
+  background: #e9edf3;
+  border: 1px solid v.$border;
+  border-radius: v.$radius-sm;
+
+  &__item {
+    @include m.button-base;
+    background: transparent;
+    border: none;
+    padding: 0.65rem 1.15rem;
+    color: v.$text-muted;
+    font-size: 0.88rem;
+
+    &--active {
+      background: v.$surface;
+      color: v.$text;
+      font-weight: 600;
+      box-shadow: 0 1px 4px #20304c10;
+    }
+  }
+
+  &__divider { color: v.$border; }
+}

@@ -1,0 +1,71 @@
+@use '../styles/variables' as v;
+@use '../styles/mixins' as m;
+
+.recommendations-wrap { @include m.card; overflow: hidden; }
+.recommendations-intro { display: flex; justify-content: space-between; gap: 1rem; padding: 1.6rem 1.75rem 1rem; align-items: start; h2 { font-size: 1.25rem; letter-spacing: -0.03em; } p { color: v.$text-muted; font-size: 0.87rem; margin: 0; } }
+.recommendations-count { color: v.$text-muted; font-size: 0.75rem; white-space: nowrap; padding: 0.3rem 0.6rem; border: 1px solid v.$border; border-radius: 6px; }
+.recommendations-approaches {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 0.5rem 1.75rem 1.5rem;
+  > div { background: #f8f9fb; padding: 1.1rem 1.2rem; border: 1px solid v.$border; border-radius: 12px; }
+  h3 { margin: 0.7rem 0 0.4rem; font-size: 1.1rem; }
+  p { color: v.$text-muted; font-size: 0.82rem; margin: 0; }
+}
+.recommendations-search { display: flex; align-items: center; gap: 0.65rem; margin: 0 1.75rem 1.25rem; border: 1px solid v.$border; border-radius: 9px; padding: 0.65rem 0.85rem; color: v.$text-muted; input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-size: 0.85rem; } &:focus-within { border-color: v.$accent; box-shadow: 0 0 0 3px v.$accent-soft; } span { font-size: 0.75rem; font-variant-numeric: tabular-nums; } }
+
+.recommendations {
+  width: 100%;
+  border-collapse: collapse;
+  background: v.$surface;
+  border: none;
+  border-radius: v.$radius;
+  overflow: hidden;
+  font-size: 0.88rem;
+
+  caption {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);
+  }
+
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 1.1rem;
+    border-bottom: 1px solid v.$border;
+  }
+
+  thead th {
+    @include m.label;
+    background: v.$surface-muted;
+    border-bottom-width: 1px;
+    font-size: 0.68rem;
+    padding-top: 0.9rem; padding-bottom: 0.9rem;
+  }
+
+  tbody th { font-weight: 600; min-width: 170px; }
+  tbody tr:hover { background: #fafbfc; }
+  td:nth-child(3), td:nth-child(4) { min-width: 180px; }
+
+  tbody tr:last-child th,
+  tbody tr:last-child td { border-bottom: none; }
+
+  &__num {
+    width: 2.5rem;
+    color: v.$text-muted;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__comment { color: v.$text-muted; min-width: 200px; font-size: 0.81rem; }
+
+  &__empty {
+    text-align: center;
+    font-style: italic;
+    color: v.$text-muted;
+    padding: 1.5rem 0;
+  }
+
+  &__error { color: v.$error; }
+}
+@media (max-width: 600px) {
+  .recommendations-intro { padding: 1.2rem; flex-direction: column; }
+  .recommendations-approaches { padding: 0 1.2rem 1rem; grid-template-columns: 1fr; }
+  .recommendations-search { margin: 0 1.2rem 1rem; }
+}
