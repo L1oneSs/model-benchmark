@@ -12,6 +12,7 @@ echo "Поднимаю стенд. Первый запуск долгий: ка�
 docker compose up -d --build
 
 echo
-echo "Готово. Откройте http://localhost:8080"
+stand_port=$(docker compose port frontend 80 | awk -F: 'NR == 1 {print $NF}')
+echo "Готово. Откройте http://localhost:${stand_port}"
 echo "Ход загрузки моделей: docker compose logs -f llm-bootstrap"
 echo "Остановить: docker compose down"

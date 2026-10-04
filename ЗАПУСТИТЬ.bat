@@ -37,11 +37,18 @@ if errorlevel 1 (
 )
 
 echo.
-echo  Готово. Открываю http://localhost:8080
+set "STAND_PORT=8080"
+if exist ".env" (
+  for /f "usebackq tokens=1,* delims==" %%A in (".env") do (
+    if /i "%%A"=="FRONTEND_PORT" set "STAND_PORT=%%B"
+  )
+)
+if defined FRONTEND_PORT set "STAND_PORT=%FRONTEND_PORT%"
+echo  Готово. Открываю http://localhost:%STAND_PORT%
 echo.
 echo  Языковые модели для чат-бота могут ещё догружаться.
 echo  Посмотреть ход: docker compose logs -f llm-bootstrap
 echo.
 timeout /t 3 >nul
-start "" http://localhost:8080
+start "" http://localhost:%STAND_PORT%
 pause

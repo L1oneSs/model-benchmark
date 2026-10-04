@@ -24,6 +24,8 @@ export interface ExperimentDefinition {
   approaches: Approach[];
   inputKind: 'text' | 'image';
   defaultText?: string;
+  defaultImageUrl?: string;
+  defaultImageLabel?: string;
   /** Для эксперимента с ускорителями: прогон повторяется по каждому бэкенду. */
   sweepsBackends?: boolean;
   /** Использует ли библиотечная парадигма выбор TensorFlow.js backend. */
@@ -86,7 +88,7 @@ export const EXPERIMENTS: ExperimentDefinition[] = [
     title: 'Вопрос-ответ по короткому контексту',
     description:
       'TensorFlow.js использует MobileBERT QnA и извлекает короткий ответ из контекста, Gemini Nano отвечает на тот же вопрос через Prompt API. ' +
-      'Формат входа: Question и Context.',
+      'Введите вопрос и текст контекста в отдельные поля.',
     approaches: ['tensorflow_js', 'gemini_nano'],
     inputKind: 'text',
     defaultText:
@@ -113,6 +115,44 @@ export const EXPERIMENTS: ExperimentDefinition[] = [
       return approach === 'tensorflow_js'
         ? tfjs.runImageClassification(input.element, backend)
         : nano.runImageClassification(input.element);
+    },
+  },
+  {
+    key: 'object_detection',
+    defaultImageUrl: '/samples/object-detection.jpg',
+    defaultImageLabel: 'Пляж: люди и воздушные змеи (официальное демо COCO-SSD)',
+    title: 'Обнаружение объектов на изображении',
+    description:
+      'COCO-SSD MobileNet v2 и Gemini Nano определяют объекты на одном изображении. ' +
+      'Сравниваются найденные классы, количество объектов и время обработки. COCO-SSD использует порог уверенности 50%. ' +
+      'Gemini отвечает в рамках тех же 80 классов COCO; его оценки количества могут отличаться. ' +
+      'Загрузите фотографию с несколькими объектами. Если Prompt API не поддерживает изображения, прогон Gemini получит статус «не поддерживается».',
+    approaches: ['tensorflow_js', 'gemini_nano'],
+    inputKind: 'image',
+    async run(approach, input, backend) {
+      if (input.kind !== 'image') throw new Error('Эксперимент ожидает изображение');
+      return approach === 'tensorflow_js'
+        ? tfjs.runObjectDetection(input.element, backend)
+        : nano.runObjectDetection(input.element);
+    },
+  },
+  {
+    key: 'face_counting',
+    title: 'Подсчёт лиц на изображении',
+    description:
+      'BlazeFace через TensorFlow.js и Gemini Nano считают видимые лица на одной фотографии. ' +
+      'Сравниваются найденное количество лиц и время обработки. ' +
+      'До 20 лиц; для мелких и частично закрытых лиц точность может снижаться. ' +
+      'Gemini требует поддержки изображений в Prompt API.',
+    approaches: ['tensorflow_js', 'gemini_nano'],
+    inputKind: 'image',
+    defaultImageUrl: '/samples/faces-group.jpg',
+    defaultImageLabel: 'Групповая фотография из тестовых данных TensorFlow.js',
+    async run(approach, input, backend) {
+      if (input.kind !== 'image') throw new Error('Эксперимент ожидает изображение');
+      return approach === 'tensorflow_js'
+        ? tfjs.runFaceCounting(input.element, backend)
+        : nano.runFaceCounting(input.element);
     },
   },
   {
@@ -258,7 +298,7 @@ export const EXPERIMENTS: ExperimentDefinition[] = [
     libraryLabel: 'ONNX',
     title: 'Генерация короткого текста',
     description:
-      'Сравнение ONNX-модели FLAN-T5 small через Transformers.js со встроенным Writer API или Prompt API. ' +
+      'Сравнение ONNX-модели SmolLM2 360M Instruct через Transformers.js со встроенным Writer API или Prompt API. ' +
       'Вход — краткая инструкция, выход — новый короткий текст, сгенерированный на стороне клиента.',
     approaches: ['tensorflow_js', 'gemini_nano'],
     inputKind: 'text',

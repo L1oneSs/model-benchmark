@@ -1,5 +1,15 @@
 # Тестовые изображения
 
+`faces-group.jpg` — групповая фотография из тестовых данных TensorFlow.js. Источник:
+https://raw.githubusercontent.com/tensorflow/tfjs-models/master/shared/test_data/three_people.jpg
+Используется как вход по умолчанию в эксперименте подсчёта лиц.
+
+`object-detection.jpg` — фотография людей и воздушных змеев на пляже из
+[официального демо COCO-SSD](https://github.com/tensorflow/tfjs-models/tree/master/coco-ssd/demo).
+Используется по умолчанию в эксперименте обнаружения объектов. Исходный файл:
+https://raw.githubusercontent.com/tensorflow/tfjs-models/master/coco-ssd/demo/image1.jpg
+Репозиторий распространяется под лицензией Apache-2.0.
+
 `test-pattern.png` — синтетический паттерн 224x224, тот же размер, что MobileNet
 ожидает на входе. Содержание картинки на латентность не влияет, но
 зафиксированный вход делает прогоны воспроизводимыми.

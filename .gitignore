@@ -7,4 +7,5 @@ __pycache__/
 frontend/public/models/*/
 !frontend/public/models/README.md
 exports/
+artifacts/generation-model-cache/
 .DS_Store

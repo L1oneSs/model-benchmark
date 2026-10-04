@@ -16,6 +16,8 @@ import * as use from '@tensorflow-models/universal-sentence-encoder';
 
 import { elapsed, heapDelta, heapUsedMb, now, withTotal } from '../benchmark/metrics';
 import type { RunOutcome, TranslationDirection } from '../benchmark/types';
+import { formatObjectCounts } from '../benchmark/objectDetection';
+import { formatModerationScores, MODERATION_THRESHOLD } from '../benchmark/moderation';
 
 export type TfBackend = 'webgl' | 'webgpu' | 'wasm' | 'cpu';
 
@@ -23,6 +25,8 @@ export const MOBILENET_MODEL_NAME = 'MobileNet v2 1.0 224 (TensorFlow.js)';
 export const USE_MODEL_NAME = 'Universal Sentence Encoder lite (TensorFlow.js)';
 export const TOXICITY_MODEL_NAME = 'Toxicity classifier (TensorFlow.js)';
 export const QNA_MODEL_NAME = 'MobileBERT QnA (TensorFlow.js)';
+export const COCO_SSD_MODEL_NAME = 'COCO-SSD MobileNet v2 (TensorFlow.js)';
+export const FACE_MODEL_NAME = 'BlazeFace / MediaPipe Face Detector (TensorFlow.js)';
 
 type ToxicityPrediction = {
   label: string;
@@ -48,6 +52,8 @@ let useModel: use.UniversalSentenceEncoder | null = null;
 let anchorVectors: { positive: Float32Array; negative: Float32Array } | null = null;
 let toxicityModel: ToxicityModel | null = null;
 let qnaModel: QnaModel | null = null;
+let objectDetectionModel: import('@tensorflow-models/coco-ssd').ObjectDetection | null = null;
+let faceDetector: import('@tensorflow-models/face-detection').FaceDetector | null = null;
 let webgpuRegistered = false;
 let tensorflowReady: Promise<void> | null = null;
 let backendProbe: Promise<TfBackend[]> | null = null;
@@ -213,7 +219,7 @@ async function loadToxicityModel(): Promise<number> {
   if (toxicityModel) return 0;
   const started = now();
   const toxicity = await import('@tensorflow-models/toxicity');
-  toxicityModel = await toxicity.load(0.75, TOXICITY_LABELS) as ToxicityModel;
+  toxicityModel = await toxicity.load(MODERATION_THRESHOLD, TOXICITY_LABELS) as ToxicityModel;
   return elapsed(started);
 }
 
@@ -348,7 +354,7 @@ export async function runTextModeration(text: string, backend?: TfBackend): Prom
 
   try {
     const loadMs = await loadToxicityModel();
-    if (!toxicityModel) throw new Error('Toxicity model ?? ???????????');
+    if (!toxicityModel) throw new Error('Модель модерации не загрузилась');
 
     const started = now();
     const predictions = await toxicityModel.classify([text]);
@@ -356,13 +362,8 @@ export async function runTextModeration(text: string, backend?: TfBackend): Prom
     const matched = predictions
       .filter((prediction) => prediction.results[0]?.match === true)
       .map((prediction) => prediction.label);
-    const scored = predictions
-      .map((prediction) => {
-        const result = prediction.results[0];
-        const probability = Number(result?.probabilities?.[1] ?? 0);
-        return `${prediction.label}: ${(probability * 100).toFixed(1)}%`;
-      })
-      .join('; ');
+    const scores = Object.fromEntries(predictions.map(prediction =>
+      [prediction.label, Number(prediction.results[0]?.probabilities?.[1] ?? 0)]));
 
     return {
       metrics: withTotal({
@@ -371,9 +372,9 @@ export async function runTextModeration(text: string, backend?: TfBackend): Prom
         inference_ms: inferenceMs,
         memory_mb: heapDelta(heapBefore),
       }),
-      output_summary: matched.length > 0 ? `flagged: ${matched.join(', ')} ? ${scored}` : `not flagged ? ${scored}`,
+      output_summary: formatModerationScores(scores, matched),
       model_name: TOXICITY_MODEL_NAME,
-      settings: { ...settings, task: 'toxicity_classification' },
+      settings: { ...settings, task: 'toxicity_classification', threshold: MODERATION_THRESHOLD, category_scores: scores, matched_categories: matched },
       status: 'ok',
     };
   } catch (error) {
@@ -493,7 +494,20 @@ type Text2TextPipeline = (
 ) => Promise<TextGenerationResult[] | TextGenerationResult>;
 
 const REWRITING_MODEL = 'Xenova/flan-t5-small';
-const TEXT_GENERATION_MODEL = REWRITING_MODEL;
+const TEXT_GENERATION_MODEL = 'HuggingFaceTB/SmolLM2-360M-Instruct';
+const TEXT_GENERATION_MODEL_NAME = 'SmolLM2 360M Instruct (Transformers.js / ONNX)';
+
+type GenerationMessage = { role: 'system' | 'user' | 'assistant'; content: string };
+type ChatGenerationResult = { generated_text: string | GenerationMessage[] };
+type ChatGenerationPipeline = (
+  messages: GenerationMessage[],
+  options: {
+    max_new_tokens: number; do_sample: boolean; return_full_text: boolean;
+    repetition_penalty: number; no_repeat_ngram_size: number;
+  },
+) => Promise<ChatGenerationResult[]>;
+let textGenerationPipeline: ChatGenerationPipeline | null = null;
+let textGenerationPipelinePromise: Promise<ChatGenerationPipeline> | null = null;
 
 let rewritingPipeline: Text2TextPipeline | null = null;
 let rewritingPipelinePromise: Promise<Text2TextPipeline> | null = null;
@@ -509,8 +523,26 @@ async function loadRewritingPipeline(): Promise<{ generator: Text2TextPipeline; 
   return { generator: rewritingPipeline, loadMs: elapsed(started) };
 }
 
-async function loadTextGenerationPipeline(): Promise<{ generator: Text2TextPipeline; loadMs: number }> {
-  return loadRewritingPipeline();
+async function loadTextGenerationPipeline(): Promise<{ generator: ChatGenerationPipeline; loadMs: number }> {
+  if (textGenerationPipeline) return { generator: textGenerationPipeline, loadMs: 0 };
+  const started = now();
+  textGenerationPipelinePromise ??= import('@huggingface/transformers').then(async ({ pipeline }) => {
+    const generator = await pipeline('text-generation', TEXT_GENERATION_MODEL, { dtype: 'q8', device: 'wasm' });
+    return generator as unknown as ChatGenerationPipeline;
+  });
+  try {
+    textGenerationPipeline = await textGenerationPipelinePromise;
+  } catch (error) {
+    textGenerationPipelinePromise = null;
+    throw error;
+  }
+  return { generator: textGenerationPipeline, loadMs: elapsed(started) };
+}
+
+function readChatGeneratedText(raw: ChatGenerationResult[]): string {
+  const generated = raw[0]?.generated_text;
+  if (typeof generated === 'string') return generated.trim();
+  return generated?.filter(message => message.role === 'assistant').at(-1)?.content.trim() ?? '';
 }
 
 function readGeneratedText(raw: TextGenerationResult[] | TextGenerationResult): string {
@@ -664,26 +696,35 @@ export async function runProofreading(text: string, backend?: TfBackend): Promis
 }
 
 
-export async function runTextGeneration(text: string, backend?: TfBackend): Promise<RunOutcome> {
+export async function runTextGeneration(text: string, _backend?: TfBackend): Promise<RunOutcome> {
   const heapBefore = heapUsedMb();
+  const generationOptions = {
+    max_new_tokens: 100,
+    do_sample: false,
+    return_full_text: false,
+    repetition_penalty: 1.1,
+    no_repeat_ngram_size: 4,
+  };
   const settings = {
-    backend: backend ?? 'transformers.js',
+    backend: 'wasm',
     model: TEXT_GENERATION_MODEL,
+    dtype: 'q8',
     task: 'short_text_generation_model',
+    ...generationOptions,
   };
 
   try {
+    const prompt = text.trim();
+    if (!prompt) throw new Error('Введите инструкцию для генерации текста');
     const { generator, loadMs } = await loadTextGenerationPipeline();
-    const prompt = `Write one concise benchmark note in English from this instruction. Return only the note: ${text}`;
     const started = now();
-    const raw = await generator(prompt, {
-      max_new_tokens: 100,
-      do_sample: false,
-      num_beams: 4,
-    });
+    const raw = await generator([
+      { role: 'system', content: 'You are a helpful assistant. Answer in English in two or three concise sentences.' },
+      { role: 'user', content: prompt },
+    ], generationOptions);
     const inferenceMs = elapsed(started);
-    const generated = readGeneratedText(raw);
-    if (!generated) throw new Error('?????? ????????? ?????? ?? ??????? ?????????');
+    const generated = readChatGeneratedText(raw);
+    if (!generated) throw new Error('Модель вернула пустой текст');
 
     return {
       metrics: withTotal({
@@ -693,12 +734,12 @@ export async function runTextGeneration(text: string, backend?: TfBackend): Prom
         memory_mb: heapDelta(heapBefore),
       }),
       output_summary: generated.slice(0, 220),
-      model_name: 'FLAN-T5 small text generation (Transformers.js / ONNX)',
+      model_name: TEXT_GENERATION_MODEL_NAME,
       settings,
       status: 'ok',
     };
   } catch (error) {
-    return failure('FLAN-T5 small text generation (Transformers.js / ONNX)', settings, error);
+    return failure(TEXT_GENERATION_MODEL_NAME, settings, error);
   }
 }
 
@@ -769,6 +810,72 @@ export async function runTextTranslation(
     };
   } catch (error) {
     return failure(modelName, settings, error);
+  }
+}
+
+export async function runFaceCounting(image: HTMLImageElement, backend?: TfBackend): Promise<RunOutcome> {
+  let settings: Record<string, unknown> = {
+    backend, task: 'face_counting', runtime: 'tfjs', model_type: 'short', max_faces: 20, model_source: 'cdn',
+  };
+  const heapBefore = heapUsedMb();
+  try {
+    settings = { ...settings, ...await prepareTfBackend(backend), model_source: 'cdn' };
+    let loadMs = 0;
+    if (!faceDetector) {
+      const started = now();
+      // TF.js entry avoids bundling the separate MediaPipe runtime.
+      const faces = await import('@tensorflow-models/face-detection/dist/tfjs/detector');
+      faceDetector = await faces.load({
+        runtime: 'tfjs', modelType: 'short', maxFaces: 20,
+      });
+      loadMs = elapsed(started);
+    }
+    const started = now();
+    const faces = await faceDetector.estimateFaces(image, { flipHorizontal: false });
+    const inferenceMs = elapsed(started);
+    return {
+      metrics: withTotal({ load_ms: loadMs, first_token_ms: inferenceMs, inference_ms: inferenceMs, memory_mb: heapDelta(heapBefore) }),
+      output_summary: `Лиц: ${faces.length}`,
+      model_name: FACE_MODEL_NAME,
+      settings: { ...settings, faces_count: faces.length, faces, image_width: image.naturalWidth, image_height: image.naturalHeight },
+      status: 'ok',
+    };
+  } catch (error) {
+    return failure(FACE_MODEL_NAME, settings, error);
+  }
+}
+
+/** Обнаружение нескольких объектов. Рамки сохраняются в настройках результата;
+ * общий результат сравнения с Gemini — список классов и количество объектов. */
+export async function runObjectDetection(image: HTMLImageElement, backend?: TfBackend): Promise<RunOutcome> {
+  let settings: Record<string, unknown> = {
+    backend, task: 'object_detection', model_source: 'cdn',
+    base: 'mobilenet_v2', max_objects: 20, min_score: 0.5,
+  };
+  const heapBefore = heapUsedMb();
+  try {
+    settings = { ...settings, ...await prepareTfBackend(backend), model_source: 'cdn' };
+    let loadMs = 0;
+    if (!objectDetectionModel) {
+      const started = now();
+      const cocoSsd = await import('@tensorflow-models/coco-ssd');
+      objectDetectionModel = await cocoSsd.load({ base: 'mobilenet_v2' });
+      loadMs = elapsed(started);
+    }
+    const started = now();
+    const predictions = await objectDetectionModel.detect(image, 20, 0.5);
+    const inferenceMs = elapsed(started);
+    const counts = new Map<string, number>();
+    for (const prediction of predictions) counts.set(prediction.class, (counts.get(prediction.class) ?? 0) + 1);
+    return {
+      metrics: withTotal({ load_ms: loadMs, first_token_ms: inferenceMs, inference_ms: inferenceMs, memory_mb: heapDelta(heapBefore) }),
+      output_summary: formatObjectCounts(Object.fromEntries(counts)),
+      model_name: COCO_SSD_MODEL_NAME,
+      settings: { ...settings, objects_count: predictions.length, objects: predictions, image_width: image.naturalWidth, image_height: image.naturalHeight },
+      status: 'ok',
+    };
+  } catch (error) {
+    return failure(COCO_SSD_MODEL_NAME, settings, error);
   }
 }
 

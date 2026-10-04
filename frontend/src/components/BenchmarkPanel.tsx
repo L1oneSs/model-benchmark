@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { ModelSelector, type ModelSelectorProps } from './ModelSelector';
+import { SearchDocumentsInput, initialSearchInput, serializeSearchInput } from './SearchDocumentsInput';
 
 import { saveMeasurements, fetchLatest } from '../api/benchmarkApi';
 import { hasCyrillic, prepareTranslator } from '../models/geminiNano';
 import { approachBadgeClass, approachLabel, type ExperimentDefinition } from '../benchmark/experiments';
 import { formatMs } from '../benchmark/metrics';
+import { formatExperimentOutput } from '../benchmark/objectDetection';
 import { DEFAULT_OPTIONS, runExperiment, type RunnerOptions } from '../benchmark/runner';
 import { type Approach, type ExperimentInput, type Measurement, type TranslationDirection } from '../benchmark/types';
 import './BenchmarkPanel.scss';
@@ -55,8 +57,11 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
     } : previous);
   }, [experiment, selector.availableBackends, selector.nanoAvailable]);
   const [text, setText] = useState(experiment.defaultText ?? '');
-  const [imageUrl, setImageUrl] = useState(sampleImageUrl);
-  const [imageLabel, setImageLabel] = useState('тестовое изображение стенда');
+  const [searchInput, setSearchInput] = useState(() => initialSearchInput(experiment.defaultText ?? ''));
+  const [question, setQuestion] = useState(() => experiment.defaultText?.match(/^Question:\s*([\s\S]*?)(?:\n\s*\nContext:|$)/)?.[1]?.trim() ?? '');
+  const [context, setContext] = useState(() => experiment.defaultText?.match(/(?:^|\n)Context:\s*([\s\S]*)/)?.[1]?.trim() ?? '');
+  const [imageUrl, setImageUrl] = useState(experiment.defaultImageUrl ?? sampleImageUrl);
+  const [imageLabel, setImageLabel] = useState(experiment.defaultImageLabel ?? 'тестовое изображение стенда');
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +91,12 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
 
   const buildInput = (): ExperimentInput => {
     if (experiment.inputKind === 'text') {
-      return { kind: 'text', text };
+      if (experiment.key === 'question_answering') {
+        if (!question.trim()) throw new Error('Введите вопрос');
+        if (!context.trim()) throw new Error('Введите контекст');
+        return { kind: 'text', text: `Question: ${question.trim().replace(/\s+/g, ' ')}\n\nContext: ${context.trim()}` };
+      }
+      return { kind: 'text', text: experiment.key === 'semantic_search' ? serializeSearchInput(searchInput) : text };
     }
     const element = imageRef.current;
     if (!element || !element.complete || element.naturalWidth === 0) {
@@ -210,7 +220,30 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
 
         <div className="panel__body">
           <div className="panel__input">
-            {experiment.inputKind === 'text' ? (
+            {experiment.key === 'semantic_search' ? (
+              <>
+                <SearchDocumentsInput value={searchInput} onChange={setSearchInput} disabled={disabled || running} />
+                {usesPromptForGemini && hasCyrillic([searchInput.query, ...searchInput.documents.flatMap(document => [document.title, document.text])].join(' ')) && (
+                  <p className="panel__lang-warning">Prompt API не поддерживает кириллицу. Для сравнения с Gemini Nano используйте английский текст.</p>
+                )}
+              </>
+            ) : experiment.key === 'question_answering' ? (
+              <div className="panel__qna">
+                <label>
+                  <span>Вопрос</span>
+                  <textarea value={question} onChange={event => setQuestion(event.target.value)}
+                    disabled={disabled || running} rows={2} placeholder="Введите вопрос по контексту" />
+                </label>
+                <label>
+                  <span>Контекст</span>
+                  <textarea value={context} onChange={event => setContext(event.target.value)}
+                    disabled={disabled || running} rows={5} placeholder="Введите текст, в котором нужно найти ответ" />
+                </label>
+                {usesPromptForGemini && hasCyrillic(`${question} ${context}`) && (
+                  <p className="panel__lang-warning">Prompt API не поддерживает кириллицу. Для сравнения с Gemini Nano используйте английский текст.</p>
+                )}
+              </div>
+            ) : experiment.inputKind === 'text' ? (
               <>
                 <textarea
                   value={text}
@@ -241,7 +274,7 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
                 )}
               </>
             ) : (
-              <div className="panel__image">
+              <div className={`panel__image${['object_detection', 'face_counting'].includes(experiment.key) ? ' panel__image--objects' : ''}`}>
                 <img ref={imageRef} src={imageUrl} alt={imageLabel} crossOrigin="anonymous" />
                 <label className="panel__file">
                   <input type="file" accept="image/*" onChange={handleFile} disabled={disabled || running} />
@@ -288,7 +321,7 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
                       {' '}
                       {experiment.sweepsBackends
                         ? `· ${row.model_name} · ${String(row.settings.backend ?? '—')} · ${new Date(row.created_at).toLocaleString('ru-RU')}`
-                        : `· до первого предсказания ${formatMs(row.metrics.first_token_ms)} · ${row.output_summary}`}
+                        : `· до первого предсказания ${formatMs(row.metrics.first_token_ms)} · ${formatExperimentOutput(experiment.key, row.output_summary)}`}
                     </span>
                   </span>
                 ) : (

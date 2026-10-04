@@ -66,6 +66,8 @@ RAG-бота.
 |------------------------|------------------------------------------|--------------------------|
 | `text_classification`  | тональность короткого текста             | обе                      |
 | `image_classification` | классификация изображения                | обе                      |
+| `object_detection`     | обнаружение объектов: COCO-SSD и Gemini Nano | обе при поддержке изображений в Prompt API |
+| `face_counting`        | подсчёт лиц: BlazeFace через TF.js и Gemini Nano | обе при поддержке изображений в Prompt API |
 | `tfjs_backends`        | тот же инференс на WebGPU, WebGL, WebAssembly и CPU | только TensorFlow.js |
 | `builtin_availability` | какие встроенные ИИ-API объявлены и работают | только встроенная   |
 

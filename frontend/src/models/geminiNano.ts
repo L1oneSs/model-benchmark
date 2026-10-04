@@ -20,6 +20,9 @@
 
 import { elapsed, heapDelta, heapUsedMb, now, withTotal } from '../benchmark/metrics';
 import type { RunOutcome, TranslationDirection } from '../benchmark/types';
+import { COCO_CLASSES, formatObjectCounts, parseObjectCounts } from '../benchmark/objectDetection';
+import { parseFaceCount } from '../benchmark/faceCounting';
+import { formatModerationFlags, parseModerationReply } from '../benchmark/moderation';
 
 export const NANO_MODEL_NAME = 'Gemini Nano (Chrome Prompt API)';
 
@@ -250,6 +253,7 @@ async function runPromptTask(
     const loadMs = elapsed(createStarted);
 
     const { text: answer, firstChunkMs, totalMs } = await streamWithFirstChunk(session, userPrompt);
+    const moderation = task === 'toxicity_classification_prompt' ? parseModerationReply(answer) : null;
 
     return {
       metrics: withTotal({
@@ -258,9 +262,9 @@ async function runPromptTask(
         inference_ms: totalMs,
         memory_mb: heapDelta(heapBefore),
       }),
-      output_summary: answer.trim().slice(0, 220),
+      output_summary: moderation ? formatModerationFlags(moderation) : answer.trim().slice(0, 220),
       model_name: NANO_MODEL_NAME,
-      settings,
+      settings: moderation ? { ...settings, category_flags: moderation } : settings,
       status: 'ok',
     };
   } catch (error) {
@@ -701,7 +705,33 @@ export const prepareTranslatorEnRu = (onProgress?: (progress: number) => void): 
  *  его не принимает, прогон получает статус «не поддерживается» — для
  *  экспериментальной главы это такой же результат, как число. */
 export async function runImageClassification(image: HTMLImageElement): Promise<RunOutcome> {
-  const settings = { ...WEB_SETTINGS, multimodal: 'image' };
+  return runImageTask(image, 'image_classification',
+    'You name the main object in an image. Reply with one word or a short phrase.',
+    'What is the main object in this image? Answer briefly.', 120);
+}
+
+export async function runObjectDetection(image: HTMLImageElement): Promise<RunOutcome> {
+  return runImageTask(image, 'object_detection',
+    'Identify visible objects in an image. Count instances of each class. Use only these COCO classes: ' +
+    COCO_CLASSES.join(', ') + '. Return only a compact JSON object with DETECTED classes and positive integer counts, ' +
+    'for example {"person":2,"car":1}. OMIT every absent class. Never output zero counts or the full list of classes. ' +
+    'No Markdown, code fences, explanations or coordinates. Report at most 20 visible objects. ' +
+    'Return {} if no supported objects are visible. Do not guess hidden objects.',
+    'Count the visible objects. Output ONLY detected classes with positive counts as compact JSON. Omit all zero counts.', 2000);
+}
+
+export async function runFaceCounting(image: HTMLImageElement): Promise<RunOutcome> {
+  return runImageTask(image, 'face_counting',
+    'Count visible human faces in the image, including partially visible faces. Count faces, not people or bodies. ' +
+    'Do not infer hidden faces. Count at most 20 faces. Reply ONLY with a nonnegative integer, for example 3. ' +
+    'If no faces are visible, reply 0. No explanation, JSON or Markdown.',
+    'How many human faces are visible? Reply with only the integer count.', 20);
+}
+
+async function runImageTask(
+  image: HTMLImageElement, task: string, systemPrompt: string, prompt: string, summaryLimit: number,
+): Promise<RunOutcome> {
+  const settings = { ...WEB_SETTINGS, multimodal: 'image', task };
   const api = getApi();
   if (!api) return unsupported(settings, availabilityHint('unavailable'));
 
@@ -718,7 +748,7 @@ export async function runImageClassification(image: HTMLImageElement): Promise<R
   try {
     const createStarted = now();
     session = await createSession(api, {
-      systemPrompt: 'You name the main object in an image. Reply with one word or a short phrase.',
+      systemPrompt,
       expectImage: true,
     });
     const loadMs = elapsed(createStarted);
@@ -729,12 +759,14 @@ export async function runImageClassification(image: HTMLImageElement): Promise<R
       {
         role: 'user',
         content: [
-          { type: 'text', value: 'What is the main object in this image? Answer briefly.' },
+          { type: 'text', value: prompt },
           { type: 'image', value: bitmap },
         ],
       },
     ]);
 
+    const counts = task === 'object_detection' ? parseObjectCounts(answer) : null;
+    const facesCount = task === 'face_counting' ? parseFaceCount(answer) : null;
     return {
       metrics: withTotal({
         load_ms: loadMs,
@@ -742,9 +774,10 @@ export async function runImageClassification(image: HTMLImageElement): Promise<R
         inference_ms: totalMs,
         memory_mb: heapDelta(heapBefore),
       }),
-      output_summary: answer.trim().slice(0, 120),
+      output_summary: facesCount !== null ? `Лиц: ${facesCount}` : counts ? formatObjectCounts(counts) : answer.trim().slice(0, summaryLimit),
       model_name: NANO_MODEL_NAME,
-      settings,
+      settings: facesCount !== null ? { ...settings, faces_count: facesCount, max_faces: 20 }
+        : counts ? { ...settings, objects: counts, objects_count: Object.values(counts).reduce((sum, count) => sum + count, 0) } : settings,
       status: 'ok',
     };
   } catch (error) {

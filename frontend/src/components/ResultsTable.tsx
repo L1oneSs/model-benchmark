@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { csvExportUrl, fetchMeasurements, fetchSummary } from '../api/benchmarkApi';
 import { approachBadgeClass, approachLabel, DEFAULT_RESULT_COLUMNS, type ExperimentDefinition, type ResultColumn } from '../benchmark/experiments';
 import { formatMb, formatMs } from '../benchmark/metrics';
+import { formatExperimentOutput } from '../benchmark/objectDetection';
 import {
   type Approach,
   type ApproachSummary,
@@ -257,7 +258,7 @@ function ResultCell({ column, row, experiment }: { column: ResultColumn; row: Me
     case 'inference_ms': return row.status === 'ok' ? <>{formatMs(row.metrics.inference_ms)}</> : <StatusCell row={row} />;
     case 'first_token_ms': return <>{formatMs(row.metrics.first_token_ms)}</>;
     case 'memory_mb': return <>{formatMb(row.metrics.memory_mb)}</>;
-    case 'output': return row.status === 'ok' ? <>{row.output_summary}</> : <StatusCell row={row} />;
+    case 'output': return row.status === 'ok' ? <>{formatExperimentOutput(row.experiment_key, row.output_summary)}</> : <StatusCell row={row} />;
     case 'created_at': return <>{new Date(row.created_at).toLocaleString('ru-RU')}</>;
   }
 }
@@ -292,7 +293,23 @@ function StatusCell({ row }: { row: Measurement }) {
 }
 
 function describeSettings(row: Measurement): string {
-  const entries = Object.entries(row.settings ?? {});
+  if (row.experiment_key === 'text_moderation') {
+    return row.approach === 'tensorflow_js'
+      ? `${String(row.settings.backend ?? '—').toUpperCase()} · Toxicity · порог ${Math.round(Number(row.settings.threshold ?? 0.75) * 100)}%`
+      : 'Prompt API · модерация текста · английский';
+  }
+  if (row.experiment_key === 'face_counting') {
+    return row.approach === 'tensorflow_js'
+      ? `${String(row.settings.backend ?? '—').toUpperCase()} · BlazeFace · до 20 лиц`
+      : 'Prompt API · изображение · подсчёт лиц';
+  }
+  if (row.experiment_key === 'object_detection') {
+    return row.approach === 'tensorflow_js'
+      ? `${String(row.settings.backend ?? '—').toUpperCase()} · COCO-SSD MobileNet v2 · порог ${Number(row.settings.min_score ?? 0.5) * 100}% · до ${String(row.settings.max_objects ?? 20)} объектов`
+      : 'Prompt API · изображение · классы COCO';
+  }
+  const entries = Object.entries(row.settings ?? {}).filter(([key]) =>
+    row.experiment_key !== 'object_detection' || key !== 'objects');
   if (entries.length === 0) return '—';
   return entries.map(([key, value]) => `${key}=${String(value)}`).join(' ');
 }

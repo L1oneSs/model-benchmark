@@ -121,6 +121,15 @@
     color: v.$warn;
   }
 
+  &__qna {
+    display: grid;
+    gap: 1rem;
+
+    label { display: grid; gap: 0.5rem; }
+    label > span { font-size: 0.85rem; font-weight: 600; }
+    label:first-child textarea { min-height: 80px; }
+  }
+
   &__input-hint {
     margin: 0.45rem 0 0;
     color: v.$text-muted;
@@ -172,6 +181,17 @@
     &--error { color: v.$error; }
   }
 
+  &__image--objects {
+    flex-wrap: wrap;
+
+    img {
+      width: min(100%, 420px);
+      height: auto;
+      object-fit: contain;
+    }
+  }
+
+
   &__actions {
     display: flex;
     flex-direction: column;
@@ -221,6 +241,106 @@
 
   &__latest-extra { color: v.$text-muted; }
   &__latest-empty { color: v.$text-muted; font-style: italic; }
+}
+
+.search-input {
+  display: grid;
+  gap: 0.85rem;
+
+  &__field {
+    display: grid;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+
+    input {
+      width: 100%;
+      min-width: 0;
+      padding: 0.65rem 0.8rem;
+      border: 1px solid v.$border;
+      border-radius: v.$radius-sm;
+      background: v.$surface;
+
+      &:focus { outline: 2px solid v.$accent; outline-offset: -1px; }
+    }
+
+    textarea { min-height: 90px; font-weight: 400; }
+  }
+
+  &__heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  &__add {
+    @include m.button-base;
+    background: v.$surface;
+    color: v.$accent;
+    border: 1px solid v.$border;
+    padding: 0.45rem 0.7rem;
+    gap: 0.4rem;
+
+    span { font-size: 1.2rem; }
+  }
+
+  &__document {
+    position: relative;
+    min-width: 0;
+    margin: 0;
+    border: 1px solid v.$border;
+    border-radius: v.$radius-sm;
+    background: v.$surface;
+
+    summary {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.8rem 3.5rem 0.8rem 1rem;
+      cursor: pointer;
+      list-style: none;
+      font-size: 0.85rem;
+
+      &::-webkit-details-marker { display: none; }
+    }
+
+    details[open] .search-input__chevron { transform: rotate(180deg); }
+  }
+
+  &__letter { color: v.$accent; font-weight: 700; }
+  &__title { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+  &__chevron { transition: transform 0.15s; }
+  &__document-fields {
+    display: grid;
+    gap: 0.7rem;
+    min-width: 0;
+    margin: 0;
+    padding: 1rem;
+    border: 0;
+    border-top: 1px solid v.$border;
+  }
+  &__remove {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.5rem;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: v.$radius-sm;
+    background: transparent;
+    color: v.$text-muted;
+    cursor: pointer;
+
+    &:hover:not(:disabled) { color: v.$error; background: v.$surface-muted; }
+  }
+
+  &__counter { text-align: right; color: v.$text-muted; font-size: 0.75rem; }
 }
 
 @media (max-width: 720px) {

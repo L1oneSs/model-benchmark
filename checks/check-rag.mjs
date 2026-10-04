@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { transformWithOxc } from 'vite';
+import { transformWithOxc } from '../frontend/node_modules/vite/dist/node/index.js';
 
 async function load(file) {
   const source = (await readFile(new URL(file, import.meta.url), 'utf8')).replace('import.meta.env.VITE_API_BASE_URL', '"http://test"');
@@ -15,7 +15,7 @@ globalThis.localStorage = {
 };
 const turn = { question: 'Вопрос', answer: 'Ответ 😀', thinking: 'Отдельно', model: 'test', sources: [] };
 
-const { askRag, fetchRagHistory, deleteRagHistory } = await load('./src/api/ragApi.ts');
+const { askRag, fetchRagHistory, deleteRagHistory } = await load('../frontend/src/api/ragApi.ts');
 const events = [{ type: 'thinking', text: 'Отдельно' }, { type: 'token', text: 'Ответ 😀' }, { type: 'done', result: turn }];
 const bytes = new TextEncoder().encode(events.map(JSON.stringify).join('\n'));
 globalThis.fetch = async (url, options) => {
