@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { RagChat } from '../components/RagChat';
+import { AgentChat } from '../components/AgentChat';
 import { RecommendationsTable } from '../components/RecommendationsTable';
 import './RecommendationsPage.scss';
 import { Icon } from '../components/Icon';
@@ -15,7 +15,7 @@ export function RecommendationsPage() {
       <header className="page-header">
         <h1>Рекомендации</h1>
         <p className="page-header__hint">
-          От результатов — к выбору технологии. Сравните подходы или обсудите измерения с RAG-ботом.
+          От результатов — к выбору технологии. Сравните подходы или обсудите измерения с агентом.
         </p>
       </header>
 
@@ -34,11 +34,11 @@ export function RecommendationsPage() {
           className={`subtabs__item${subTab === 'bot' ? ' subtabs__item--active' : ''}`}
           onClick={() => setSubTab('bot')}
         >
-          <Icon name="spark" /> RAG-бот
+          <Icon name="spark" /> Агент
         </button>
       </div>
 
-      {subTab === 'table' ? <RecommendationsTable /> : <RagChat />}
+      {subTab === 'table' ? <RecommendationsTable /> : <AgentChat />}
     </>
   );
 }

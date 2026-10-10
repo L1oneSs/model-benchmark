@@ -1,4 +1,4 @@
-"""RAG: отдельные каналы ответа и thinking, история и ограниченная генерация."""
+"""Agent orchestration: tools, evidence, reports, charts and streamed answers."""
 from __future__ import annotations
 
 import json
@@ -11,10 +11,11 @@ import httpx
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.db.repositories import MeasurementRepository, RagDocumentRepository
-from app.rag.prompts import SYSTEM_PROMPT, build_user_prompt
-from app.rag.retriever import Retriever, asks_recommendation_table
-from app.schemas import RagAnswer, RagHistoryTurn, RagSource
+from app.agent.planner import AgentPlanner
+from app.agent.prompts import SYSTEM_PROMPT, build_user_prompt
+from app.agent.reports import render_numeric_answer
+from app.agent.intent import asks_recommendation_table, asks_recommendations_with_measurements
+from app.schemas import AgentAnswer, AgentHistoryTurn, AgentSource, AgentChart
 
 logger = logging.getLogger(__name__)
 ANSWER_SCHEMA = {
@@ -48,49 +49,68 @@ def answer_prefix(text: str) -> str:
     return ""
 
 
-class RagService:
+class AgentService:
     def __init__(self, session: Session) -> None:
         self.settings = get_settings()
         self.session = session
-        self.retriever = Retriever(session)
-
-    async def reindex(self) -> int:
-        return await self.retriever.reindex(self.settings.rag_recent_measurements)
+        self.planner = AgentPlanner(session, self.settings)
 
     async def answer(self, question: str, thinking: bool = False,
-                     history: list[RagHistoryTurn] | None = None) -> RagAnswer:
+                     history: list[AgentHistoryTurn] | None = None) -> AgentAnswer:
         async for event in self.stream_answer(question, thinking, history):
             if event["type"] == "done":
-                return RagAnswer.model_validate(event["result"])
+                return AgentAnswer.model_validate(event["result"])
         raise RuntimeError("Поток ответа завершился без результата")
 
     async def stream_answer(self, question: str, thinking: bool = False,
-                            history: list[RagHistoryTurn] | None = None) -> AsyncIterator[dict]:
+                            history: list[AgentHistoryTurn] | None = None) -> AsyncIterator[dict]:
         started = perf_counter()
         history = (history or [])[-3:]
-        yield {"type": "status", "message": "Ищу подходящие рекомендации и измерения…"}
-        search_text = "\n".join([h.question for h in history[-1:]] + [question])
+        yield {"type": "status", "message": "Выбираю инструменты для ответа…"}
         table_only = asks_recommendation_table(question)
+        sources = []
+        async for event in self.planner.collect(question, history):
+            if event["type"] == "context":
+                sources = event["sources"]
+            else:
+                yield event
         if table_only:
-            found = await self.retriever.search(question, self.settings.rag_top_k, table_only=True)
-            history = []  # Previous numerical answers are not evidence of what the table says.
-        else:
-            found = await self.retriever.search(search_text, self.settings.rag_top_k)
-        sources = [RagSource(source_type=st, source_key=sk, content=content, score=round(score, 4))
-                   for st, sk, content, score in found]
+            history = []
         yield {"type": "sources", "sources": [s.model_dump() for s in sources], "model": self.settings.ollama_chat_model}
+        charts = []
+        for source in sources:
+            if source.source_key.startswith("build_chart:"):
+                data = json.loads(source.content)
+                for item in data.get("charts", [data["chart"]] if "chart" in data else []):
+                    chart = AgentChart.model_validate(item)
+                    if chart not in charts:
+                        charts.append(chart)
+        if len(charts) > 8:
+            raise RuntimeError("Запрошено слишком много графиков. Уточните эксперимент или метрики.")
+        report = render_numeric_answer(question, sources)
+        if report is not None:
+            yield {"type": "token", "text": report}
+            result = AgentAnswer(answer=report, thinking="", sources=sources, model=self.settings.ollama_chat_model, charts=charts)
+            logger.info("Agent report total_seconds=%.3f", perf_counter() - started)
+            yield {"type": "done", "result": result.model_dump()}
+            return
         answer_text = ""
         thinking_text = ""
-        if found:
-            context = "\n\n".join(
-                f"[{i}] Источник: {'ТАБЛИЦА РЕКОМЕНДАЦИЙ' if source_type == 'recommendation' else 'РЕЗУЛЬТАТЫ ИЗМЕРЕНИЙ'}.\n{content}"
-                for i, (source_type, _, content, _) in enumerate(found, 1))
+        if sources:
+            context = "\n\n".join(f"[{i}] {source.source_key}:\n{source.content}"
+                                    for i, source in enumerate(sources, 1))
             prompt = build_user_prompt(context, question)
             if table_only:
                 prompt += '\nОтветь только о содержимом таблицы: отдельно TensorFlow.js, Gemini Nano и комментарий нужного критерия. Не добавляй результаты прогонов или числа из истории переписки.'
+            elif asks_recommendations_with_measurements(question):
+                prompt += ('\nОбязательно ответь на основе ОБОИХ источников: кратко вердикт таблицы, затем '
+                           'медианы инференса из calculate_statistics с моделями, бэкендами, n и ссылками, '
+                           'затем практический выбор для данного эксперимента. Не ограничивайся пересказом таблицы. '
+                           'Не распространяй результаты одного эксперимента на все задачи обработки текста. '
+                           'Если измерений нет, прямо скажи об этом; не придумывай сравнение.')
             yield {"type": "status", "message": "Модель обрабатывает контекст…"}
             truncated = False
-            async for chunk in self._chat_stream(prompt, thinking, history):
+            async for chunk in self._chat_stream(prompt, thinking, []):
                 if chunk.get("thinking") and thinking:
                     thinking_text += chunk["thinking"]
                     yield {"type": "thinking", "text": chunk["thinking"]}
@@ -102,7 +122,7 @@ class RagService:
             if not answer_text.strip() and thinking:
                 yield {"type": "status", "message": "Формирую итоговый ответ…"}
                 truncated = False
-                async for chunk in self._chat_stream(prompt, False, history):
+                async for chunk in self._chat_stream(prompt, False, []):
                     if chunk.get("text"):
                         answer_text += chunk["text"]
                         yield {"type": "token", "text": chunk["text"]}
@@ -112,20 +132,14 @@ class RagService:
             if truncated:
                 answer_text += "\n\nОтвет достиг ограничения длины. Уточните вопрос для продолжения."
         else:
-            answer_text = "В таблице рекомендаций пока нет строк." if table_only else self._explain_empty_index()
-        result = RagAnswer(answer=answer_text.strip(), thinking=thinking_text, sources=sources,
-                           model=self.settings.ollama_chat_model)
-        logger.info("RAG total_seconds=%.3f thinking=%s", perf_counter() - started, thinking)
+            raise RuntimeError("Агент не получил данных для ответа.")
+        result = AgentAnswer(answer=answer_text.strip(), thinking=thinking_text, sources=sources,
+                           model=self.settings.ollama_chat_model, charts=charts)
+        logger.info("Agent total_seconds=%.3f thinking=%s", perf_counter() - started, thinking)
         yield {"type": "done", "result": result.model_dump()}
 
-    def _explain_empty_index(self) -> str:
-        has_data = MeasurementRepository(self.session).count() > 0 or RagDocumentRepository(self.session).count() > 0
-        if has_data:
-            return "Данные есть, но поисковый индекс пуст. Нажмите «Переиндексировать» и повторите вопрос."
-        return "В базе пока нет измерений. Запустите эксперимент на вкладке «Стенд» и повторите вопрос."
-
     async def _chat_stream(self, user_prompt: str, thinking: bool = False,
-                           history: list[RagHistoryTurn] | None = None) -> AsyncIterator[dict]:
+                           history: list[AgentHistoryTurn] | None = None) -> AsyncIterator[dict]:
         messages = [{"role": "system", "content": SYSTEM_PROMPT +
             '\nВерни JSON вида {"answer":"готовый ответ пользователю"}. '
             'В answer пиши только итоговый ответ, без описания своего анализа, планов и рассуждений. '
@@ -140,8 +154,8 @@ class RagService:
             "model": self.settings.ollama_chat_model, "stream": True,
             "think": thinking, "format": ANSWER_SCHEMA,
             "keep_alive": self.settings.ollama_keep_alive,
-            "options": {"temperature": 0.2, "num_predict": self.settings.rag_max_tokens + (512 if thinking else 0),
-                        "num_ctx": 4096, "num_thread": 4},
+            "options": {"temperature": 0.2, "num_predict": self.settings.agent_max_tokens + (512 if thinking else 0),
+                        "num_ctx": 8192, "num_thread": 4},
             "messages": messages,
         }
         raw = ""

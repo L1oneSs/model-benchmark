@@ -2,43 +2,28 @@
 
 Замеры снимает браузер: и TensorFlow.js, и Gemini Nano исполняются на стороне
 клиента, поэтому бэкенд ничего не вычисляет — он принимает готовые числа,
-складывает их в PostgreSQL и переиндексирует RAG."""
+складывает их в PostgreSQL для таблиц и инструментов агента."""
 
 from __future__ import annotations
 
 import csv
 import io
-import logging
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
-from app.db.database import SessionLocal, get_session
+from app.db.database import get_session
 from app.db.models import Measurement
 from app.db.repositories import MeasurementRepository
-from app.rag.service import RagService
 from app.schemas import MeasurementBatchIn, MeasurementOut, MeasurementPage
 
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/measurements", tags=["measurements"])
-
-
-async def _reindex_after_write() -> None:
-    """Фоновая переиндексация: ответ клиенту не ждёт похода в Ollama."""
-    session = SessionLocal()
-    try:
-        await RagService(session).reindex()
-    except Exception as exc:  # noqa: BLE001 - индексация не должна ронять запись измерений
-        logger.warning("Переиндексация не удалась, измерения сохранены: %s", exc)
-    finally:
-        session.close()
 
 
 @router.post("", response_model=list[MeasurementOut], status_code=201)
 async def create_measurements(
     batch: MeasurementBatchIn,
-    background: BackgroundTasks,
     session: Session = Depends(get_session),
 ) -> list[Measurement]:
     repo = MeasurementRepository(session)
@@ -62,7 +47,6 @@ async def create_measurements(
         for run in batch.runs
     ]
     saved = repo.add_many(rows)
-    background.add_task(_reindex_after_write)
     return saved
 
 

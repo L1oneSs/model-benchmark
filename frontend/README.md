@@ -1,6 +1,6 @@
 # frontend — интерфейс и браузерные измерения
 
-React 19, TypeScript 7, SCSS, Vite 8. Production-сборку раздаёт nginx. Экспериментальный инференс выполняется в браузере через TensorFlow.js, Transformers.js / ONNX Runtime Web или встроенные ИИ-API Chrome. RAG-чат обращается к отдельному серверному API.
+React 19, TypeScript 7, SCSS, Vite 8. Production-сборку раздаёт nginx. Экспериментальный инференс выполняется в браузере через TensorFlow.js, Transformers.js / ONNX Runtime Web или встроенные ИИ-API Chrome. Чат агента обращается к отдельному серверному API.
 
 ## Основные модули
 
@@ -12,7 +12,8 @@ React 19, TypeScript 7, SCSS, Vite 8. Production-сборку раздаёт ngi
 | `src/components/SearchDocumentsInput.tsx` | До пяти документов A–E, названия, сворачивание и удаление |
 | `src/components/EnvironmentPanel.tsx` | Среда, бэкенды, доступность встроенных API, статус/загрузка Nano |
 | `src/components/ResultsTable.tsx` | Сводки, фильтры, фиксированные колонки, пагинация и CSV |
-| `src/components/RagChat.tsx` | История с сервера, поток ответа, Thinking и удаление чата |
+| `src/components/AgentChat.tsx` | История с сервера, поток ответа, Thinking и удаление чата |
+| `src/components/AgentMarkdown.tsx` | Markdown ответов и Thinking: списки, таблицы, ссылки и код, без исполнения HTML |
 | `src/models/tensorflow.ts` | Адаптеры TF.js и ONNX-моделей |
 | `src/models/geminiNano.ts` | Prompt и специализированные встроенные API |
 | `src/models/builtinAi.ts`, `useNanoModel.ts` | Диагностика API и наблюдение за загрузкой Nano |
@@ -70,7 +71,7 @@ ONNX-модели загружаются лениво через Transformers.js
 
 Prompt-задачи настроены на английский вход. Предупреждение о кириллице относится только к соответствующим задачам; перевод и определение языка имеют отдельную обработку. Translator и LanguageDetector используют отдельные браузерные модели. Загрузка Nano отслеживается при открытии стенда; если Chrome требует действие пользователя, интерфейс предлагает запустить загрузку. Для переводов создание языкового пакета начинается из обработчика кнопки запуска.
 
-## RAG-чат
+## Чат агента
 
 История читается и сохраняется через API. `localStorage` хранит UUID чата; поддержан импорт прежней клиентской истории. Лимит — 30 завершённых ответов. Thinking и удаление истории находятся в блоке ввода. NDJSON-события отделяют текст ответа от рассуждений и источников; незавершённый поток не выдаётся за завершённый ответ.
 
@@ -94,6 +95,15 @@ Dev-сервер: http://localhost:5173. Для текущего API задай�
 | `VITE_API_BASE_URL` | `http://localhost:8000` | `http://localhost:18000` |
 | `VITE_MODEL_SOURCE` | `cdn` | `cdn`, если не переопределено |
 
-`VITE_MODEL_SOURCE=local` переключает только MobileNet: [инструкция](public/models/README.md). После смены переменных сборки выполните из корня `docker compose up -d --build --no-deps frontend`. Текущий адрес интерфейса — http://localhost:18080.
+`VITE_MODEL_SOURCE=local` переключает все модели TensorFlow.js: [инструкция](public/models/README.md). После смены переменных сборки выполните из корня `docker compose up -d --build --no-deps frontend`. Текущий адрес интерфейса — http://localhost:18080.
 
 Проверочные скрипты находятся в [../checks](../checks/README.md). Изображения и их источники: [samples](public/samples/README.md).
+
+Агент выбирает серверные инструменты чтения рекомендаций, прогонов, статистики и сравнения серий. В интерфейсе показываются этапы обращения к данным и источники; обновление векторного индекса для чата не требуется. Клиент использует `src/api/agentApi.ts` и `/api/agent/*`; старые адреса чата оставлены временными алиасами. Графики отображаются компонентом `AgentCharts.tsx` и сохраняются в истории.
+## Графики агента
+
+`AgentCharts` поддерживает HTML/CSS-диаграммы, PNG из Matplotlib и интерактивные
+HTML-файлы из Plotly. Python-форматы строит бэкенд; интерфейс использует только
+проверенные ссылки `/api/agent/charts/{uuid}.png|html`. Интерактивный файл открывается
+в iframe с `sandbox="allow-scripts"`. Все форматы отображают медиану или среднее,
+единицы измерения и фактическое число прогонов. Старые ответы без новых полей совместимы.

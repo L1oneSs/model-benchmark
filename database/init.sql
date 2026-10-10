@@ -60,17 +60,3 @@ CREATE INDEX IF NOT EXISTS idx_measurements_metrics
 
 -- Индекс RAG-бота. Векторы лежат в jsonb: корпус маленький (десятки строк),
 -- косинусная близость считается в Python, расширение pgvector не требуется.
-CREATE TABLE IF NOT EXISTS rag_documents (
-    id           SERIAL PRIMARY KEY,
-    source_type  TEXT        NOT NULL,
-    source_key   TEXT        NOT NULL,
-    content      TEXT        NOT NULL,
-    embedding    JSONB       NOT NULL,
-    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT rag_documents_source_unique UNIQUE (source_type, source_key),
-    CONSTRAINT rag_documents_source_type_check
-        CHECK (source_type IN ('recommendation', 'measurement_summary'))
-);
-
-COMMENT ON TABLE  rag_documents             IS 'Проиндексированные фрагменты для RAG-бота: рекомендации и сводки последних измерений';
-COMMENT ON COLUMN rag_documents.embedding   IS 'Вектор эмбеддинга в виде JSON-массива чисел';

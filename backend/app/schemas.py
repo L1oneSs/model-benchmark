@@ -80,33 +80,52 @@ class RecommendationPatch(BaseModel):
     sort_order: int | None = None
 
 
-class RagHistoryTurn(BaseModel):
+class AgentHistoryTurn(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
     answer: str = Field(min_length=1, max_length=6000)
+    sources: list[AgentSource] = Field(default_factory=list)
 
 
-class RagQuery(BaseModel):
+class AgentQuery(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
     thinking: bool = False
 
 
-class RagSource(BaseModel):
+class AgentSource(BaseModel):
     source_type: str
     source_key: str
     content: str
     score: float
 
 
-class RagAnswer(BaseModel):
+class ChartPoint(BaseModel):
+    label: str = Field(max_length=500)
+    value: float = Field(allow_inf_nan=False)
+    samples: int = Field(ge=1)
+
+
+class AgentChart(BaseModel):
+    kind: Literal["bar"] = "bar"
+    renderer: Literal["html", "python_static", "python_interactive"] = "html"
+    statistic: Literal["median", "mean"] = "median"
+    artifact_url: str | None = Field(default=None, pattern=r"^/api/agent/charts/[a-f0-9]{32}\.(png|html)$")
+    title: str = Field(max_length=300)
+    metric: Literal["inference_ms", "first_token_ms", "load_ms", "total_ms", "memory_mb"]
+    unit: Literal["мс", "МБ"]
+    points: list[ChartPoint] = Field(max_length=500)
+
+
+class AgentAnswer(BaseModel):
     answer: str
     thinking: str = ""
-    sources: list[RagSource]
+    sources: list[AgentSource]
     model: str
+    charts: list[AgentChart] = Field(default_factory=list, max_length=8)
 
 
-class RagStoredTurn(RagAnswer):
+class AgentStoredTurn(AgentAnswer):
     question: str = Field(min_length=1, max_length=2000)
 
 
-class RagHistoryImport(BaseModel):
-    turns: list[RagStoredTurn] = Field(max_length=30)
+class AgentHistoryImport(BaseModel):
+    turns: list[AgentStoredTurn] = Field(max_length=30)

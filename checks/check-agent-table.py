@@ -4,10 +4,10 @@ import time
 import httpx
 
 key = str(uuid4())
-with httpx.Client(base_url="http://localhost:8000", timeout=180, headers={"X-Rag-Chat": key}) as client:
+with httpx.Client(base_url="http://localhost:8000", timeout=180, headers={"X-Agent-Chat": key}) as client:
     started = time.perf_counter()
     try:
-        response = client.post("/api/rag/ask", json={
+        response = client.post("/api/agent/ask", json={
             "question": "Что в таблице рекомендаций сказано про скорость обработки текста?",
             "thinking": False,
         })
@@ -18,4 +18,4 @@ with httpx.Client(base_url="http://localhost:8000", timeout=180, headers={"X-Rag
         print("answer:", result["answer"], flush=True)
         print("seconds:", round(time.perf_counter() - started, 2), flush=True)
     finally:
-        client.delete("/api/rag/history").raise_for_status()
+        client.delete("/api/agent/history").raise_for_status()

@@ -1,19 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { askRag, reindexRag, fetchRagHistory, deleteRagHistory, type Turn } from '../api/ragApi';
-import './RagChat.scss';
+import { askAgent, fetchAgentHistory, deleteAgentHistory, type Turn } from '../api/agentApi';
+import './AgentChat.scss';
+import { AgentCharts } from './AgentCharts';
+import { AgentMarkdown } from './AgentMarkdown';
 import { Icon } from './Icon';
 
 const SUGGESTIONS = [
-  'Что выбрать для классификации изображений на слабом ноутбуке?',
-  'Какой подход быстрее отвечает на текстовых задачах по последним измерениям?',
-  'Когда встроенная модель не подойдёт вообще?',
+  'Что в таблице рекомендаций сказано про скорость обработки текста?',
+  'Посчитай медиану инференса в эксперименте «Сравнение в скорости обработки текста», отдельно по моделям и бэкендам.',
+  'Сравни две последние серии эксперимента «Сравнение в скорости обработки текста».',
+  'Построй график медианы инференса в эксперименте «Сравнение в скорости обработки текста», отдельно по моделям и бэкендам.',
 ];
 
-/** Чат RAG-бота. Контекст собирается из таблицы рекомендаций и последних
- *  измерений, ответ генерирует локальная модель — внешние сервисы не
- *  используются. */
-export function RagChat() {
+/** Чат агента: локальная модель читает данные через инструменты backend. */
+export function AgentChat() {
   const [question, setQuestion] = useState('');
   const [turns, setTurns] = useState<Turn[]>([]);
   const [limit, setLimit] = useState(30);
@@ -32,7 +33,7 @@ export function RagChat() {
   useEffect(() => () => { request.current?.abort(); request.current = null; }, []);
   useEffect(() => {
     let active = true;
-    void fetchRagHistory().then(history => {
+    void fetchAgentHistory().then(history => {
       if (!active) return;
       setTurns(history.turns);
       setLimit(history.limit);
@@ -48,7 +49,7 @@ export function RagChat() {
     setBusy(true);
     setError(null);
     try {
-      const history = await deleteRagHistory();
+      const history = await deleteAgentHistory();
       setTurns(history.turns);
       setLimit(history.limit);
       setPending(null);
@@ -72,7 +73,7 @@ export function RagChat() {
     followMessages.current = true;
     setPending({ question: trimmed, answer: '', thinking: '', sources: [], model: '' });
     try {
-      const answer = await askRag(trimmed, (event) => {
+      const answer = await askAgent(trimmed, (event) => {
         if (request.current !== controller) return;
         if (event.type === 'status') setStage(event.message);
         if (event.type === 'sources') setPending((previous) => previous && ({ ...previous, sources: event.sources, model: event.model }));
@@ -100,7 +101,7 @@ export function RagChat() {
       setError(controller.signal.aborted ? 'Генерация остановлена' : caught instanceof Error ? caught.message : String(caught));
       if (!controller.signal.aborted) {
         try {
-          const history = await fetchRagHistory();
+          const history = await fetchAgentHistory();
           if (request.current === controller) { setTurns(history.turns); setLimit(history.limit); }
         } catch { /* Keep the original request error. */ }
       }
@@ -112,19 +113,6 @@ export function RagChat() {
     }
   };
 
-  const reindex = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const count = await reindexRag();
-      setError(`Индекс перестроен, фрагментов: ${count}`);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <section className="rag">
       <header className="rag__header">
@@ -132,9 +120,6 @@ export function RagChat() {
         <div><h2>Ассистент по экспериментам</h2><p>Ответы по рекомендациям и измерениям вашего стенда</p></div>
         <span className="rag__counter">{historyReady ? `${turns.length} / ${limit} ответов` : 'Загрузка истории…'}</span>
       </header>
-      <div className="rag__toolbar">
-        <button type="button" className="rag__reindex" onClick={() => void reindex()} disabled={busy} title="Обновить поисковый индекс рекомендаций и измерений"><Icon name="refresh" size={15} />Обновить индекс</button>
-      </div>
       {thinking && <p className="rag__note rag__thinking-note">Режим Thinking включён. Рассуждения могут увеличить время ответа.</p>}
       {historyFull && <p className="rag__error" role="alert">Достигнут лимит истории: {limit} ответов. Нажмите «Удалить чат», чтобы продолжить переписку.</p>}
 
@@ -162,9 +147,10 @@ export function RagChat() {
           <div key={index} className="rag__turn">
             <p className="rag__question">{turn.question}</p>
             <div className="rag__answer">
-              <span className="rag__speaker"><Icon name="spark" size={14} /> RAG-бот</span>
-              {turn.thinking && <details className="rag__thinking"><summary>Thinking</summary><p>{turn.thinking}</p></details>}
-              <p>{turn.answer}</p>
+              <span className="rag__speaker"><Icon name="spark" size={14} /> Агент</span>
+              {turn.thinking && <details className="rag__thinking"><summary>Thinking</summary><AgentMarkdown text={turn.thinking} /></details>}
+              <AgentMarkdown text={turn.answer} />
+              <AgentCharts charts={turn.charts} />
               {turn.sources.length > 0 && (
                 <details className="rag__sources">
                   <summary>Источники ответа: {turn.sources.length}</summary>
@@ -172,9 +158,8 @@ export function RagChat() {
                     {turn.sources.map((source) => (
                       <li key={`${source.source_type}-${source.source_key}`}>
                         <span className="rag__source-type">
-                          {source.source_type === 'recommendation' ? 'рекомендация' : 'измерение'}
+                          {source.source_type === 'recommendation' ? 'таблица рекомендаций' : source.source_type === 'agent_tool' ? 'инструмент агента' : 'измерение'}
                         </span>{' '}
-                        <span className="rag__score">{source.score.toFixed(3)}</span>
                         <br />
                         {source.content}
                       </li>
@@ -182,7 +167,7 @@ export function RagChat() {
                   </ul>
                 </details>
               )}
-              <p className="rag__model">Ответ сгенерирован моделью {turn.model}</p>
+              <p className="rag__model">Модель агента: {turn.model}</p>
             </div>
           </div>
         ))}
@@ -190,9 +175,9 @@ export function RagChat() {
           <div className="rag__turn">
             <p className="rag__question">{pending.question}</p>
             <div className="rag__answer" aria-busy={busy}>
-              <span className="rag__speaker"><Icon name="spark" size={14} /> RAG-бот</span>
-              {pending.thinking && <details className="rag__thinking"><summary>Thinking</summary><p>{pending.thinking}</p></details>}
-              {pending.answer && <p>{pending.answer}</p>}
+              <span className="rag__speaker"><Icon name="spark" size={14} /> Агент</span>
+              {pending.thinking && <details className="rag__thinking"><summary>Thinking</summary><AgentMarkdown text={pending.thinking} /></details>}
+              {pending.answer && <AgentMarkdown text={pending.answer} />}
               <p className="rag__model" role="status">{stage}</p>
             </div>
           </div>

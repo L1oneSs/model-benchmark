@@ -38,6 +38,22 @@ type QnaModel = { findAnswers(question: string, passage: string): Promise<QnaAns
 
 
 const LOCAL_MODELS = import.meta.env.VITE_MODEL_SOURCE === 'local';
+const localModel = (folder: string, file = 'model.json'): string =>
+  `${window.location.origin}/models/${folder}/${file}`;
+
+// MobileBERT and Toxicity have hardcoded vocabulary URLs in the installed versions.
+// Redirect only those TF.js requests; do not patch global fetch or other traffic.
+if (LOCAL_MODELS) {
+  const platform = tf.env().platform;
+  const fetch = platform.fetch.bind(platform);
+  platform.fetch = (path, init, options) => fetch(
+    path.split('?')[0] === 'https://tfhub.dev/tensorflow/tfjs-model/mobilebert/1/processed_vocab.json'
+      ? localModel('qna', 'processed_vocab.json')
+      : path.split('?')[0] === 'https://storage.googleapis.com/tfjs-models/savedmodel/universal_sentence_encoder/vocab.json'
+        ? localModel('model-b', 'vocab.json') : path,
+    init, options,
+  );
+}
 const TOXICITY_LABELS = ['identity_attack', 'insult', 'obscene', 'severe_toxicity', 'sexual_explicit', 'threat', 'toxicity'];
 
 /** Опорные фразы для классификации тональности: их векторы считаются один раз
@@ -157,7 +173,7 @@ async function loadMobilenet(): Promise<number> {
   const started = now();
   mobilenetModel = await mobilenet.load(
     LOCAL_MODELS
-      ? { version: 2, alpha: 1.0, modelUrl: `${window.location.origin}/models/model-a/model.json` }
+      ? { version: 2, alpha: 1.0, modelUrl: localModel('model-a'), inputRange: [0, 1] }
       : { version: 2, alpha: 1.0 },
   );
   await warmUpMobilenet(mobilenetModel);
@@ -167,7 +183,9 @@ async function loadMobilenet(): Promise<number> {
 async function loadSentenceEncoder(): Promise<number> {
   if (useModel && anchorVectors) return 0;
   const started = now();
-  useModel = await use.load();
+  useModel = await use.load(LOCAL_MODELS
+    ? { modelUrl: localModel('model-b'), vocabUrl: localModel('model-b', 'vocab.json') }
+    : undefined);
   const embeddings = await useModel.embed([ANCHORS.positive, ANCHORS.negative]);
   const data = (await embeddings.array()) as number[][];
   embeddings.dispose();
@@ -219,7 +237,16 @@ async function loadToxicityModel(): Promise<number> {
   if (toxicityModel) return 0;
   const started = now();
   const toxicity = await import('@tensorflow-models/toxicity');
-  toxicityModel = await toxicity.load(MODERATION_THRESHOLD, TOXICITY_LABELS) as ToxicityModel;
+  if (LOCAL_MODELS) {
+    class LocalToxicityClassifier extends toxicity.ToxicityClassifier {
+      override loadModel() { return tf.loadGraphModel(localModel('toxicity')); }
+    }
+    const model = new LocalToxicityClassifier(MODERATION_THRESHOLD, TOXICITY_LABELS);
+    await model.load();
+    toxicityModel = model as ToxicityModel;
+  } else {
+    toxicityModel = await toxicity.load(MODERATION_THRESHOLD, TOXICITY_LABELS) as ToxicityModel;
+  }
   return elapsed(started);
 }
 
@@ -227,7 +254,8 @@ async function loadQnaModel(): Promise<number> {
   if (qnaModel) return 0;
   const started = now();
   const qna = await import('@tensorflow-models/qna');
-  qnaModel = await qna.load() as QnaModel;
+  qnaModel = await qna.load(LOCAL_MODELS
+    ? { modelUrl: localModel('qna'), fromTFHub: false } : undefined) as QnaModel;
   return elapsed(started);
 }
 
@@ -815,11 +843,11 @@ export async function runTextTranslation(
 
 export async function runFaceCounting(image: HTMLImageElement, backend?: TfBackend): Promise<RunOutcome> {
   let settings: Record<string, unknown> = {
-    backend, task: 'face_counting', runtime: 'tfjs', model_type: 'short', max_faces: 20, model_source: 'cdn',
+    backend, task: 'face_counting', runtime: 'tfjs', model_type: 'short', max_faces: 20, model_source: LOCAL_MODELS ? 'local' : 'cdn',
   };
   const heapBefore = heapUsedMb();
   try {
-    settings = { ...settings, ...await prepareTfBackend(backend), model_source: 'cdn' };
+    settings = { ...settings, ...await prepareTfBackend(backend) };
     let loadMs = 0;
     if (!faceDetector) {
       const started = now();
@@ -827,6 +855,7 @@ export async function runFaceCounting(image: HTMLImageElement, backend?: TfBacke
       const faces = await import('@tensorflow-models/face-detection/dist/tfjs/detector');
       faceDetector = await faces.load({
         runtime: 'tfjs', modelType: 'short', maxFaces: 20,
+        ...(LOCAL_MODELS ? { detectorModelUrl: localModel('face-detector') } : {}),
       });
       loadMs = elapsed(started);
     }
@@ -849,17 +878,18 @@ export async function runFaceCounting(image: HTMLImageElement, backend?: TfBacke
  * общий результат сравнения с Gemini — список классов и количество объектов. */
 export async function runObjectDetection(image: HTMLImageElement, backend?: TfBackend): Promise<RunOutcome> {
   let settings: Record<string, unknown> = {
-    backend, task: 'object_detection', model_source: 'cdn',
+    backend, task: 'object_detection', model_source: LOCAL_MODELS ? 'local' : 'cdn',
     base: 'mobilenet_v2', max_objects: 20, min_score: 0.5,
   };
   const heapBefore = heapUsedMb();
   try {
-    settings = { ...settings, ...await prepareTfBackend(backend), model_source: 'cdn' };
+    settings = { ...settings, ...await prepareTfBackend(backend) };
     let loadMs = 0;
     if (!objectDetectionModel) {
       const started = now();
       const cocoSsd = await import('@tensorflow-models/coco-ssd');
-      objectDetectionModel = await cocoSsd.load({ base: 'mobilenet_v2' });
+      objectDetectionModel = await cocoSsd.load({ base: 'mobilenet_v2',
+        ...(LOCAL_MODELS ? { modelUrl: localModel('coco-ssd') } : {}) });
       loadMs = elapsed(started);
     }
     const started = now();

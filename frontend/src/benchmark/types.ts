@@ -103,18 +103,30 @@ export interface Recommendation {
   updated_at: string;
 }
 
-export interface RagSource {
+export interface AgentSource {
   source_type: string;
   source_key: string;
   content: string;
   score: number;
 }
 
-export interface RagAnswer {
+export interface AgentAnswer {
   answer: string;
   thinking: string;
-  sources: RagSource[];
+  sources: AgentSource[];
+  charts?: AgentChart[];
   model: string;
+}
+
+export interface AgentChart {
+  kind: 'bar';
+  renderer?: 'html' | 'python_static' | 'python_interactive';
+  statistic?: 'median' | 'mean';
+  artifact_url?: string | null;
+  title: string;
+  metric: 'inference_ms' | 'first_token_ms' | 'load_ms' | 'total_ms' | 'memory_mb';
+  unit: 'мс' | 'МБ';
+  points: { label: string; value: number; samples: number }[];
 }
 
 /** Результат работы адаптера конкретной парадигмы. */

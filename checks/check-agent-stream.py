@@ -9,9 +9,9 @@ import httpx
 started = time.perf_counter()
 first = None
 completed = False
-with httpx.Client(timeout=180, headers={"X-Rag-Chat": str(uuid4())}) as client:
+with httpx.Client(timeout=180, headers={"X-Agent-Chat": str(uuid4())}) as client:
     with client.stream(
-        "POST", "http://localhost:8000/api/rag/ask?stream=true",
+        "POST", "http://localhost:8000/api/agent/ask?stream=true",
         json={"question": "Когда выбрать TensorFlow.js вместо Gemini Nano?"},
     ) as response:
         response.raise_for_status()

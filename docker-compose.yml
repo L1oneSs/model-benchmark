@@ -49,8 +49,7 @@ services:
         condition: service_healthy
     environment:
       OLLAMA_HOST: http://llm:11434
-      CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3:4b}
-      EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-qwen3-embedding:0.6b}
+      CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3.5:4b}
     entrypoint: ["/bin/sh", "/bootstrap.sh"]
     volumes:
       - ./llm/bootstrap.sh:/bootstrap.sh:ro
@@ -62,15 +61,14 @@ services:
       context: ./backend
     container_name: mb-backend
     restart: unless-stopped
+    volumes:
+      - ./artifacts/agent-charts:/srv/artifacts/agent-charts
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-benchmark}:${POSTGRES_PASSWORD:-benchmark}@database:5432/${POSTGRES_DB:-benchmark}
       OLLAMA_URL: http://llm:11434
-      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3:4b}
-      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-qwen3-embedding:0.6b}
-      RAG_TOP_K: ${RAG_TOP_K:-6}
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3.5:4b}
       OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-0}
-      RAG_MAX_TOKENS: ${RAG_MAX_TOKENS:-384}
-      RAG_RECENT_MEASUREMENTS: ${RAG_RECENT_MEASUREMENTS:-10}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-${RAG_MAX_TOKENS:-384}}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
     depends_on:
       database:

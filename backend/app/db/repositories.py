@@ -1,5 +1,5 @@
 """Доступ к данным. Вся работа с таблицами собрана здесь, чтобы слой API
-и RAG-сервис не писали SQL напрямую."""
+и сервис агента не писали SQL напрямую."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Float, cast, desc, func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import Measurement, RagDocument, Recommendation
+from app.db.models import Measurement, Recommendation
 
 
 class RecommendationRepository:
@@ -157,29 +157,3 @@ class MeasurementRepository:
                 "samples": len(values),
             }
         return summary
-
-
-class RagDocumentRepository:
-    def __init__(self, session: Session) -> None:
-        self.session = session
-
-    def upsert(self, source_type: str, source_key: str, content: str, embedding: list[float]) -> None:
-        row = self.session.scalar(
-            select(RagDocument).where(
-                RagDocument.source_type == source_type,
-                RagDocument.source_key == source_key,
-            )
-        )
-        if row is None:
-            row = RagDocument(source_type=source_type, source_key=source_key)
-            self.session.add(row)
-        row.content = content
-        row.embedding = embedding
-        row.updated_at = datetime.now(timezone.utc)
-        self.session.commit()
-
-    def list_all(self) -> list[RagDocument]:
-        return list(self.session.scalars(select(RagDocument)))
-
-    def count(self) -> int:
-        return self.session.scalar(select(func.count(RagDocument.id))) or 0

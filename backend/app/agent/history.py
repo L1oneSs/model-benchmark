@@ -7,19 +7,25 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
 from app.db.database import SessionLocal
-from app.db.models import RagChat
-from app.schemas import RagHistoryTurn
+from app.db.models import AgentChat
+from app.schemas import AgentHistoryTurn
 
 HISTORY_LIMIT = 30
 
 
-def chat_id(x_rag_chat: UUID = Header()) -> str:
-    return str(x_rag_chat)
+def chat_id(x_agent_chat: UUID | None = Header(default=None),
+            x_rag_chat: UUID | None = Header(default=None)) -> str:
+    if x_agent_chat is not None and x_rag_chat is not None and x_agent_chat != x_rag_chat:
+        raise HTTPException(400, "Идентификаторы чата в заголовках не совпадают")
+    key = x_agent_chat or x_rag_chat
+    if key is None:
+        raise HTTPException(422, "Передайте UUID чата в X-Agent-Chat")
+    return str(key)
 
 
 def locked_chat(session, key):
-    session.execute(insert(RagChat).values(id=key, turns=[]).on_conflict_do_nothing())
-    return session.scalar(select(RagChat).where(RagChat.id == key).with_for_update())
+    session.execute(insert(AgentChat).values(id=key, turns=[]).on_conflict_do_nothing())
+    return session.scalar(select(AgentChat).where(AgentChat.id == key).with_for_update())
 
 
 def read_history(key):
@@ -56,7 +62,7 @@ def reserve(key):
         token = str(uuid4())
         chat.pending = token
         chat.pending_at = datetime.now(timezone.utc)
-        history = [RagHistoryTurn(question=t["question"][:2000], answer=t["answer"][:6000]) for t in chat.turns[-3:]]
+        history = [AgentHistoryTurn(question=t["question"][:2000], answer=t["answer"][:6000], sources=t.get('sources', [])) for t in chat.turns[-3:]]
         return token, history
 
 
