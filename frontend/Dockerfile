@@ -8,12 +8,17 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
 
 WORKDIR /app
 
-COPY package.json ./
-RUN ONNXRUNTIME_NODE_INSTALL=skip npm install --legacy-peer-deps
+COPY package.json package-lock.json ./
+RUN ONNXRUNTIME_NODE_INSTALL=skip npm ci --legacy-peer-deps
 
 COPY tsconfig.json tsconfig.node.json vite.config.ts index.html ./
 COPY public ./public
 COPY src ./src
+
+ARG STAND_GIT_COMMIT
+ARG STAND_GIT_DIRTY
+ARG STAND_REPOSITORY
+ENV STAND_GIT_COMMIT=$STAND_GIT_COMMIT STAND_GIT_DIRTY=$STAND_GIT_DIRTY STAND_REPOSITORY=$STAND_REPOSITORY
 
 # Бинарники WebAssembly-бэкенда TensorFlow.js раздаются самим стендом
 RUN mkdir -p public/wasm && cp node_modules/@tensorflow/tfjs-backend-wasm/dist/*.wasm public/wasm/

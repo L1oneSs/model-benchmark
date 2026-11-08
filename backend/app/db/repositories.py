@@ -157,3 +157,17 @@ class MeasurementRepository:
                 "samples": len(values),
             }
         return summary
+
+    def statistics_rows(self, experiment_key: str, window: int = 10) -> list[Measurement]:
+        """Last window successful records separately for every model/backend."""
+        backend = Measurement.settings['backend'].as_string()
+        ranked = select(Measurement.id.label('measurement_id'), func.row_number().over(
+            partition_by=(Measurement.approach, Measurement.model_name, backend),
+            order_by=(desc(Measurement.created_at), desc(Measurement.id)),
+        ).label('position')).where(
+            Measurement.experiment_key == experiment_key, Measurement.status == 'ok',
+        ).subquery()
+        return list(self.session.scalars(select(Measurement).join(
+            ranked, Measurement.id == ranked.c.measurement_id,
+        ).where(ranked.c.position <= window).order_by(Measurement.approach, Measurement.model_name,
+                                                    backend, Measurement.id)))

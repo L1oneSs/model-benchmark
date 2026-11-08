@@ -7,4 +7,4 @@ class RecommendationTools:
         if args.rec_key is not None and rows[0] is None:
             return {"error": "Unknown criterion key. Omit rec_key to read the full table."}
         return {"recommendations": [{"key": r.rec_key, "title": r.title, "tensorflow_js": r.tfjs_verdict,
-            "gemini_nano": r.gemini_verdict, "comment": r.comment} for r in rows if r is not None]}
+            "onnx": getattr(r, 'onnx_verdict', ''), "gemini_nano": r.gemini_verdict, "comment": r.comment} for r in rows if r is not None]}

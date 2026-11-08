@@ -27,7 +27,13 @@ def render_artifact(chart):
             fig = Figure(figsize=(12, min(24, max(4, len(labels) * .55))), layout='constrained')
             FigureCanvasAgg(fig)
             ax = fig.subplots()
-            ax.barh(range(len(values)), values, color='#4b668e')
+            kind = chart.get('kind', 'bar')
+            if kind == 'line':
+                ax.plot(values, range(len(values)), marker='o', color='#6366f1')
+            elif kind == 'scatter':
+                ax.scatter(values, range(len(values)), color='#6366f1')
+            else:
+                ax.barh(range(len(values)), values, color='#6366f1')
             ax.set_yticks(range(len(labels)), labels, fontsize=9)
             ax.invert_yaxis()
             ax.axvline(0, color='#94a3b8', linewidth=.7)
@@ -42,9 +48,13 @@ def render_artifact(chart):
             fig.clear()
         else:
             import plotly.graph_objects as go
-            fig = go.Figure(go.Bar(x=values, y=[escape(s) for s in labels], orientation='h',
-                customdata=[p['samples'] for p in chart['points']], marker_color='#4b668e',
-                hovertemplate='%{y}<br>%{x} ' + chart['unit'] + '<br>n=%{customdata}<extra></extra>'))
+            options = dict(x=values, y=[escape(s) for s in labels],
+                customdata=[p['samples'] for p in chart['points']], marker_color='#6366f1',
+                hovertemplate='%{y}<br>%{x} ' + chart['unit'] + '<br>n=%{customdata}<extra></extra>')
+            kind = chart.get('kind', 'bar')
+            trace = go.Bar(**options, orientation='h') if kind == 'bar' else go.Scatter(
+                **options, mode='lines+markers' if kind == 'line' else 'markers')
+            fig = go.Figure(trace)
             fig.update_layout(title=escape(title), template='plotly_white',
                               height=min(1400, max(400, len(labels) * 65)), xaxis_title=chart['unit'],
                               yaxis={'autorange': 'reversed'}, margin={'l': 30, 'r': 30})
@@ -57,13 +67,21 @@ def requested_chart_options(question):
     """Keep explicit format/statistic requests intact even with a small planner model."""
     import re
     text = question.lower()
-    if re.search(r'интерактив|динамич|interactive|dynamic|plotly', text):
+    if re.search(r'echarts|javascript|\bjs\b|в браузере', text):
+        renderer = 'html'
+    elif re.search(r'интерактив|динамич|interactive|dynamic|plotly', text):
         renderer = 'python_interactive'
     elif re.search(r'python|питон|статич|static|matplotlib|\bpng\b', text):
         renderer = 'python_static'
     else:
         renderer = 'html'
     options = {'renderer': renderer, 'statistic': 'mean' if re.search(r'средн|\bmean\b|average', text) else 'median'}
+    if re.search(r'линейн|\bline\b', text):
+        options['kind'] = 'line'
+    elif re.search(r'точечн|\bscatter\b', text):
+        options['kind'] = 'scatter'
+    elif re.search(r'столбчат|\bbar\b', text):
+        options['kind'] = 'bar'
     from app.agent.intent import all_metrics_request
     if not all_metrics_request(question):
         patterns = {

@@ -1,3 +1,5 @@
+import { Textarea } from './ui/textarea';
+import { Button } from './ui/button';
 import { useEffect, useRef, useState } from 'react';
 
 import { askAgent, fetchAgentHistory, deleteAgentHistory, type Turn } from '../api/agentApi';
@@ -135,9 +137,9 @@ export function AgentChat() {
             <p>Сравните подходы, разберитесь в результатах<br />или найдите технологию для своей задачи.</p>
             <div className="rag__suggestions">
               {SUGGESTIONS.map((item) => (
-                <button key={item} type="button" onClick={() => void ask(item)} disabled={busy || !historyReady || historyFull}>
+                <Button variant="outline" key={item} type="button" onClick={() => void ask(item)} disabled={busy || !historyReady || historyFull}>
                   <span>{item}</span><Icon name="arrow" size={16} />
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -193,7 +195,7 @@ export function AgentChat() {
           void ask(question);
         }}
       >
-        <textarea
+        <Textarea
           rows={2}
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
@@ -210,15 +212,15 @@ export function AgentChat() {
         />
         <div className="rag__composer-footer">
           <div className="rag__composer-actions">
-            <button type="button" className="rag__reindex" aria-pressed={thinking}
+            <Button variant="outline" type="button" className="rag__reindex" aria-pressed={thinking}
               disabled={busy} onClick={() => setThinking(value => !value)}>
               <Icon name="spark" size={15} />Thinking: {thinking ? 'включён' : 'выключен'}
-            </button>
-            <button type="button" className="rag__reindex rag__delete" onClick={() => void deleteChat()}
-              disabled={!historyReady || (busy && !request.current)}><Icon name="trash" size={15} />Удалить чат</button>
+            </Button>
+            <Button variant="outline" type="button" className="rag__reindex rag__delete" onClick={() => void deleteChat()}
+              disabled={!historyReady || (busy && !request.current)}><Icon name="trash" size={15} />Удалить чат</Button>
           </div>
-          {busy && pending ? <button type="button" className="rag__reindex" onClick={() => request.current?.abort()}>Остановить</button>
-            : <button type="submit" className="rag__send" disabled={busy || !historyReady || historyFull || !question.trim()}>Отправить<Icon name="arrow" size={17} /></button>}
+          {busy && pending ? <Button variant="outline" type="button" className="rag__reindex" onClick={() => request.current?.abort()}>Остановить</Button>
+            : <Button variant="outline" type="submit" className="rag__send" disabled={busy || !historyReady || historyFull || !question.trim()}>Отправить<Icon name="arrow" size={17} /></Button>}
         </div>
       </form>
       <p className="rag__footnote">Проверяйте выводы по источникам. Первый ответ может занять больше времени из-за загрузки модели.</p>

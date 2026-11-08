@@ -29,6 +29,8 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     AgentChat.__table__.create(engine, checkfirst=True)
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE measurements ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{}'::jsonb"))
     yield
 
 

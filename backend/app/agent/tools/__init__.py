@@ -8,11 +8,11 @@ from .statistics import StatisticsTools, summarize
 
 TOOL_TYPES = {
     'explain_statistic': (ExplanationArgs, 'Explain the median/mean formula using actual individual observations, their IDs and series. Preserve the previous calculation selection if measurement_ids are available.'),
-    "build_chart": (ChartArgs, "Build grouped median/mean bar charts: HTML in chat, Python static PNG (Matplotlib), or Python interactive HTML (Plotly). Use metric=all for every available metric."),
+    "build_chart": (ChartArgs, "Build grouped median/mean charts. kind: bar, line or scatter. Default html renderer displays interactive Apache ECharts in chat; optional Python static PNG (Matplotlib) or interactive HTML (Plotly). Use metric=all for every available metric. These are aggregates by variant, not raw time series or distributions."),
     "list_experiments": (EmptyArgs, "List experiments recorded in the database, their titles and counts. Use to discover exact experiment keys."),
     "read_recommendations": (RecommendationArgs, "Read the current recommendation table. Omit rec_key to read all criteria. Table verdicts are not measured numbers."),
     "read_measurements": (MeasurementArgs, "Read recent individual runs for an exact experiment, optionally filtering approach, backend, model or series."),
-    "calculate_statistics": (StatisticsArgs, "Calculate metrics on recent successful runs, grouped by approach, model and backend. Missing values stay missing."),
+    "calculate_statistics": (StatisticsArgs, "Calculate median, mean, p95, IQR, bootstrap CI95 and sample counts by approach/model/backend. Also compare groups with Cliff delta and two-sided Mann-Whitney p-values (Holm adjusted) using individual successful measurements. Tests assume independent observations. Use for effect size and significance requests. Missing values stay missing."),
     "compare_series": (CompareArgs, "Compare two series of an experiment, defaulting to the latest two. Compute median latency differences for matching approach/model/backend groups."),
 }
 TOOLS = [{"type": "function", "function": {"name": name, "description": description,

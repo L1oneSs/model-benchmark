@@ -14,7 +14,7 @@ class ChartTools:
                     continue
                 points.append({"label": f"{group['model']} · {group['backend'] or 'встроенный API'}",
                                "value": value[args.statistic], "samples": value["samples"]})
-            chart = {"kind": "bar", "title": f"{data.get('experiment_title', args.experiment_key)} · медиана",
+            chart = {"kind": args.kind, "title": f"{data.get('experiment_title', args.experiment_key)} · медиана",
                      "metric": metric, "unit": "МБ" if metric == "memory_mb" else "мс", "points": points}
             if points or args.metric != "all":
                 chart['renderer'] = args.renderer

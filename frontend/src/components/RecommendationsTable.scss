@@ -5,8 +5,8 @@
 .recommendations-intro { display: flex; justify-content: space-between; gap: 1rem; padding: 1.6rem 1.75rem 1rem; align-items: start; h2 { font-size: 1.25rem; letter-spacing: -0.03em; } p { color: v.$text-muted; font-size: 0.87rem; margin: 0; } }
 .recommendations-count { color: v.$text-muted; font-size: 0.75rem; white-space: nowrap; padding: 0.3rem 0.6rem; border: 1px solid v.$border; border-radius: 6px; }
 .recommendations-approaches {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 0.5rem 1.75rem 1.5rem;
-  > div { background: #f8f9fb; padding: 1.1rem 1.2rem; border: 1px solid v.$border; border-radius: 12px; }
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding: 0.5rem 1.75rem 1.5rem;
+  > div { background: var(--muted); padding: 1.1rem 1.2rem; border: 1px solid v.$border; border-radius: 12px; }
   h3 { margin: 0.7rem 0 0.4rem; font-size: 1.1rem; }
   p { color: v.$text-muted; font-size: 0.82rem; margin: 0; }
 }
@@ -41,8 +41,8 @@
   }
 
   tbody th { font-weight: 600; min-width: 170px; }
-  tbody tr:hover { background: #fafbfc; }
-  td:nth-child(3), td:nth-child(4) { min-width: 180px; }
+  tbody tr:hover { background: var(--card); }
+  td:nth-child(3), td:nth-child(4), td:nth-child(5) { min-width: 180px; }
 
   tbody tr:last-child th,
   tbody tr:last-child td { border-bottom: none; }

@@ -7,3 +7,4 @@ pydantic-settings==2.13.0
 httpx==0.28.1
 matplotlib==3.11.2
 plotly==7.1.0
+scipy==1.18.0

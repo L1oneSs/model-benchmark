@@ -4,7 +4,8 @@
   background: v.$sidebar-bg;
   color: v.$sidebar-text;
   border-right: 1px solid v.$border;
-  padding: 2rem 1rem;
+  padding: 1.5rem .85rem;
+  display: flex; flex-direction: column;
   position: sticky;
   top: 0;
   height: 100dvh;
@@ -14,10 +15,18 @@
     width: 100%; text-align: left; font: inherit; background: transparent; border: none;
     border-radius: v.$radius-sm; padding: 0.8rem 0.85rem; display: flex; align-items: center;
     gap: 0.8rem; font-size: 0.88rem; color: inherit; cursor: pointer; transition: background-color 0.15s ease;
-    &:hover { background: #e4e9f0; }
-    &--active { background: v.$sidebar-active; color: #263f64; font-weight: 600; box-shadow: inset 3px 0 v.$accent; }
+    &:hover { background: v.$surface-muted; }
+    &--active { background: v.$sidebar-active; color: var(--accent-foreground); font-weight: 600; }
   }
 }
+.sidebar__brand {display:flex;align-items:center;gap:.7rem;color:var(--foreground);padding:0 .5rem;margin-bottom:2.5rem;&:hover{text-decoration:none;}}
+.sidebar__logo {display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:var(--primary);color:var(--primary-foreground);flex-shrink:0;}
+.sidebar__brand-text {font-size:1.05rem;font-weight:650;letter-spacing:-.03em;>span{display:block;font-size:.64rem;font-weight:400;letter-spacing:.02em;color:var(--muted-foreground);margin-top:.1rem;}}
+.sidebar__caption {font-size:.64rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;padding:0 .85rem;margin-bottom:.9rem;}
+.sidebar__footer {display:flex;align-items:center;gap:.5rem;margin-top:auto;padding:1rem .7rem 0;border-top:1px solid var(--border);font-size:.7rem;color:var(--muted-foreground);svg{margin-left:auto;}}
+.sidebar__status {height:6px;width:6px;border-radius:50%;background:var(--muted-foreground);}
+.sidebar--collapsed {.sidebar__brand-text,.sidebar__caption,.sidebar__item span,.sidebar__footer{display:none;}.sidebar__brand{padding:0;justify-content:center;}.sidebar__item{justify-content:center;padding:.8rem;}}
+@media(max-width:860px){.sidebar__brand,.sidebar__caption,.sidebar__footer{display:none;}.sidebar--collapsed .sidebar__item span{display:inline;}.sidebar--collapsed .sidebar__item{padding:.65rem .25rem;}}
 @media (max-width: 860px) {
   .sidebar {
     height: auto; position: relative; padding: 0.75rem 1rem; border-right: none; border-bottom: 1px solid v.$border;

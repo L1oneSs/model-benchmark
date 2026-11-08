@@ -12,6 +12,7 @@ import { probeBuiltinApis } from '../models/builtinAi';
 import * as tfjs from '../models/tensorflow';
 import type { Approach, ExperimentInput, MeasurementPayload, TranslationDirection } from './types';
 import type { TfBackend } from '../models/tensorflow';
+import { prepareProvenance } from './provenance';
 
 /** Замер в фоновой вкладке недействителен.
  *
@@ -71,6 +72,8 @@ export async function runExperiment(
   const environment = await collectEnvironment();
   const payloads: MeasurementPayload[] = [];
   const inputSummary = summarizeInput(input);
+  const provenance = await prepareProvenance(input, options);
+  try {
 
   if (experiment.sweepsBackends) {
     const available = await tfjs.availableBackends();
@@ -80,10 +83,10 @@ export async function runExperiment(
     for (const backend of backends) {
       for (let attempt = 0; attempt < totalAttempts(options); attempt += 1) {
         options.onProgress?.(`${backend}: прогон ${attempt + 1} из ${totalAttempts(options)}`);
-        const outcome = await tfjs.runOnBackend(
+        const outcome = await provenance.invoke(attempt, () => tfjs.runOnBackend(
           (input as Extract<ExperimentInput, { kind: 'image' }>).element,
           backend,
-        );
+        ));
         if (skip(attempt, options)) continue;
         payloads.push({
           experiment_key: experiment.key,
@@ -93,6 +96,7 @@ export async function runExperiment(
           settings: outcome.settings,
           metrics: outcome.metrics,
           environment,
+          metadata: outcome.metadata,
           input_summary: inputSummary,
           output_summary: outcome.output_summary,
           status: outcome.status,
@@ -109,9 +113,9 @@ export async function runExperiment(
       if (options.includeLibraryModel) {
         for (let attempt = 0; attempt < totalAttempts(options); attempt += 1) {
           options.onProgress?.(`${experiment.libraryLabel ?? 'library'}: прогон ${attempt + 1} из ${totalAttempts(options)}`);
-          const outcome = await experiment.run('tensorflow_js', input, undefined, {
+          const outcome = await provenance.invoke(attempt, () => experiment.run('tensorflow_js', input, undefined, {
             translationDirection: options.translationDirection,
-          });
+          }));
           if (skip(attempt, options)) continue;
           payloads.push(toPayload(experiment, 'tensorflow_js', outcome, environment, inputSummary));
         }
@@ -122,9 +126,9 @@ export async function runExperiment(
       for (const backend of backends) {
         for (let attempt = 0; attempt < totalAttempts(options); attempt += 1) {
           options.onProgress?.(`${backend}: прогон ${attempt + 1} из ${totalAttempts(options)}`);
-          const outcome = await experiment.run('tensorflow_js', input, backend, {
+          const outcome = await provenance.invoke(attempt, () => experiment.run('tensorflow_js', input, backend, {
             translationDirection: options.translationDirection,
-          });
+          }));
           if (skip(attempt, options)) continue;
           payloads.push(toPayload(experiment, 'tensorflow_js', outcome, environment, inputSummary));
         }
@@ -138,9 +142,9 @@ export async function runExperiment(
   for (const approach of approaches) {
     for (let attempt = 0; attempt < totalAttempts(options); attempt += 1) {
       options.onProgress?.(`${label(approach)}: прогон ${attempt + 1} из ${totalAttempts(options)}`);
-      const outcome = await experiment.run(approach, input, undefined, {
+      const outcome = await provenance.invoke(attempt, () => experiment.run(approach, input, undefined, {
         translationDirection: options.translationDirection,
-      });
+      }));
 
       // Недоступную парадигму записываем один раз: повторять нечего.
       if (outcome.status === 'unsupported') {
@@ -156,6 +160,7 @@ export async function runExperiment(
   }
 
   return payloads;
+  } finally { provenance.stop(); }
 }
 
 function selectBackends(available: TfBackend[], options: RunnerOptions): TfBackend[] {
@@ -187,6 +192,7 @@ function toPayload(
     settings: outcome.settings,
     metrics: outcome.metrics,
     environment,
+    metadata: outcome.metadata,
     input_summary: inputSummary,
     output_summary: outcome.output_summary,
     status: outcome.status,

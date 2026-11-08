@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+  --background: #f7f8fa; --foreground: #18181b;
+  --card: #ffffff; --card-foreground: #18181b;
+  --popover: #ffffff; --popover-foreground: #18181b;
+  --primary: #4f46e5; --primary-foreground: #ffffff;
+  --secondary: #f0f1f5; --secondary-foreground: #27272a;
+  --muted: #f0f1f5; --muted-foreground: #626574;
+  --accent: #eeedff; --accent-foreground: #4338ca;
+  --destructive: #dc2626; --border: #e3e5ec; --input: #d9dce5; --ring: #6366f1;
+  --radius: .75rem;
+  --sidebar: #ffffff; --sidebar-foreground: #626574;
+  --success: #15803d; --warning: #a16207; --tfjs: #b45309; --gemini: #4f46e5; --onnx: #7c3aed;
+  --chart-1: #6366f1; --chart-2: #0d9488; --chart-3: #f59e0b; --chart-4: #e879a8; --chart-5: #0284c7;
+}
+.dark {
+  color-scheme: dark;
+  --background: #101115; --foreground: #eceef4;
+  --card: #181a20; --card-foreground: #eceef4;
+  --popover: #202229; --popover-foreground: #eceef4;
+  --primary: #a5a0ff; --primary-foreground: #171333;
+  --secondary: #24262f; --secondary-foreground: #e4e5ee;
+  --muted: #22242d; --muted-foreground: #a1a5b5;
+  --accent: #2c2945; --accent-foreground: #c4bfff;
+  --destructive: #fb8585; --border: #30333e; --input: #3b3f4c; --ring: #a5a0ff;
+  --sidebar: #15161b; --sidebar-foreground: #a1a5b5;
+  --success: #6ee7a0; --warning: #facc70; --tfjs: #fbbf77; --gemini: #bcb5ff; --onnx: #c4a2ff;
+  --chart-1: #a5a0ff; --chart-2: #2dd4bf; --chart-3: #fbbf24; --chart-4: #f9a8d4; --chart-5: #38bdf8;
+}
+@theme inline {
+  --color-background: var(--background); --color-foreground: var(--foreground);
+  --color-card: var(--card); --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover); --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary); --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted); --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent); --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive); --color-border: var(--border); --color-input: var(--input); --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px); --radius-md: calc(var(--radius) - 2px); --radius-lg: var(--radius); --radius-xl: calc(var(--radius) + 4px);
+}

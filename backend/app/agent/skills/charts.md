@@ -1,6 +1,6 @@
 ---
 name: benchmark-charts
-description: "Строит графики записанных метрик в HTML/CSS, статичном Python PNG или интерактивном Python HTML с выбором медианы либо среднего."
+description: "Строит интерактивные графики Apache ECharts в чате, статичные Python PNG и интерактивные Python HTML по сохранённым метрикам."
 ---
 
 # Measurement charts: построение графиков
@@ -17,11 +17,13 @@ description: "Строит графики записанных метрик в H
 Для графика вызывай build_chart. Разреши experiment_key по каталогу и сохраняй
 только явно запрошенные фильтры модели/бэкенда/серии.
 
-renderer: html — HTML/CSS в чате по умолчанию;
-python_static — Python/статичный/PNG/Matplotlib;
-python_interactive — динамический/интерактивный/Plotly.
-Динамический означает наведение и масштабирование, не live-обновление или анимацию.
-Текущий вид только горизонтальный bar; line/scatter/boxplot/гистограмма не реализованы.
+renderer: html - интерактивный Apache ECharts в чате по умолчанию, также для явного запроса ECharts/JavaScript;
+python_static - Python/статичный/PNG/Matplotlib;
+python_interactive - отдельный интерактивный HTML-файл Plotly.
+kind: bar по умолчанию, line для линейного, scatter для точечного графика.
+Это агрегаты по вариантам, а не последовательность отдельных измерений во времени.
+Box plot и распределение требуют исходных наблюдений и доступны в окне графиков измерений, но не в build_chart.
+Не генерируй конфигурацию ECharts или исполняемый код: интерфейс строит график по проверенным данным инструмента.
 
 metric: inference_ms по умолчанию; first_token_ms — первое предсказание;
 load_ms — загрузка; total_ms — полное время; memory_mb — JS heap.

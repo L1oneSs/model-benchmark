@@ -1,0 +1,35 @@
+%%{init: {"c4": {"useMaxWidth": false, "width": 300, "height": 100, "c4ShapeMargin": 120, "c4ShapePadding": 25, "diagramMarginX": 40, "diagramMarginY": 40}}}%%
+C4Container
+    title Экспериментальный стенд
+
+    Person(researcher, "Исследователь", "Входы и параметры серий")
+    System_Ext(model_sources, "Хранилища моделей", "Google / TF Hub, Hugging Face, Chrome, Ollama")
+
+    System_Boundary(stand, "Стенд сравнения подходов к интеграции ИИ") {
+        Container(browser, "Браузерное приложение", "React / TypeScript", "TensorFlow.js, Transformers.js и API Chrome; инференс и измерения")
+
+        Boundary(docker, "Docker Compose", "Граница развёртывания") {
+            Container(frontend, "frontend", "nginx", "Приложение, WASM и локальные веса")
+            Container(backend, "backend", "Python / FastAPI", "Измерения, статистика, выгрузки и агент")
+            ContainerDb(database, "database", "PostgreSQL / pgdata", "Измерения, рекомендации, чаты")
+            Container(ollama, "llm", "Ollama / qwen3.5:4b", "Модель агента; веса в томе ollama")
+            Container(bootstrap, "llm-bootstrap", "bootstrap.sh", "Подготовка модели агента")
+        }
+
+    }
+
+    Rel(researcher, browser, "Запускает серии")
+    Rel(browser, frontend, "Приложение и ресурсы", "HTTP")
+    Rel(browser, model_sources, "Браузерные модели", "HTTPS")
+    Rel(browser, backend, "Измерения и запросы", "HTTP / JSON")
+    Rel(backend, database, "Данные", "SQL")
+    Rel(backend, ollama, "План и ответ агента", "HTTP")
+    Rel(bootstrap, ollama, "Подготовка весов", "Ollama CLI")
+    Rel(ollama, model_sources, "Веса агента", "HTTPS")
+
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+    UpdateRelStyle(researcher, browser, $offsetX="-70", $offsetY="-35")
+    UpdateRelStyle(browser, frontend, $offsetX="-90", $offsetY="-20")
+    UpdateRelStyle(browser, backend, $offsetX="50", $offsetY="-55")
+    UpdateRelStyle(browser, model_sources, $offsetX="110", $offsetY="-65")
+    UpdateRelStyle(bootstrap, ollama, $offsetX="0", $offsetY="35")

@@ -50,7 +50,7 @@ try {
     ['MobileBERT', "model.runQuestionAnswering('Question: Where does Alice live?\\n\\nContext: Alice lives in London.', 'webgl')"],
     ['MobileNet', "model.runImageClassification(await image('/samples/object-detection.jpg'), 'webgl')"],
     ['COCO-SSD', "model.runObjectDetection(await image('/samples/object-detection.jpg'), 'webgl')"],
-    ['Face Detector', "model.runFaceCounting(await image('/samples/face-counting.jpg'), 'webgl')"],
+    ['Face Detector', "model.runFaceCounting(await image('/samples/faces-group.jpg'), 'webgl')"],
   ]) {
     const result = await call('Runtime.evaluate', {
       expression: `(async () => { const model = await import('/src/models/tensorflow.ts');

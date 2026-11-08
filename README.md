@@ -40,11 +40,11 @@ CORS_ORIGINS=http://localhost:18080
 
 | Компонент | Реализация | Документация |
 |---|---|---|
-| frontend | React 19, TypeScript 7, SCSS, Vite 8, nginx | [frontend](frontend/README.md) |
-| backend | Python 3.12, FastAPI, SQLAlchemy 2, psycopg 3 | [backend](backend/README.md) |
-| database | PostgreSQL 16, JSONB | [database](database/README.md) |
-| llm | Ollama: `qwen3.5:4b` | [llm](llm/README.md) |
-| checks | проверки адаптеров, RAG и интерфейса | [checks](checks/README.md) |
+| frontend | React 19, TypeScript 7, SCSS, Vite 8, nginx | [frontend](docs/frontend/README.md) |
+| backend | Python 3.12, FastAPI, SQLAlchemy 2, psycopg 3 | [backend](docs/backend/README.md) |
+| database | PostgreSQL 16, JSONB | [database](docs/database/README.md) |
+| llm | Ollama: `qwen3.5:4b` | [llm](docs/llm/README.md) |
+| checks | проверки адаптеров, RAG и интерфейса | [checks](docs/checks/README.md) |
 
 ```text
 Браузер: TF.js / Transformers.js + ONNX / встроенные API Chrome
@@ -53,7 +53,7 @@ CORS_ORIGINS=http://localhost:18080
                          └── наш planner → Ollama: выбор инструментов и поток ответа
 ```
 
-Генерация ответов агента работает локально через Ollama. Установка зависимостей и первая загрузка весов требуют внешней сети: TF.js скачивает модели из CDN, Transformers.js — из Hugging Face, Chrome управляет загрузкой встроенных моделей, Ollama скачивает свои веса. [Локальный режим TF.js](frontend/public/models/README.md) переключает все шесть моделей TensorFlow.js на веса и словари из самого стенда.
+Генерация ответов агента работает локально через Ollama. Установка зависимостей и первая загрузка весов требуют внешней сети: TF.js скачивает модели из CDN, Transformers.js — из Hugging Face, Chrome управляет загрузкой встроенных моделей, Ollama скачивает свои веса. [Локальный режим TF.js](docs/frontend/public/models/README.md) переключает все шесть моделей TensorFlow.js на веса и словари из самого стенда.
 
 ## Эксперименты
 
@@ -148,6 +148,6 @@ typeof LanguageModel !== 'undefined' && await LanguageModel.availability()
 - `checks/` — проверочные скрипты и инструкции.
 - `scripts/` — загрузка локальных TF.js-весов и диагностика формата ответа агента.
 
-Подробности запуска и сверки с инструментом TF.js: [ЗАПУСК.md](ЗАПУСК.md). Проверки: [checks/README.md](checks/README.md).
+Подробности запуска и сверки с инструментом TF.js: [ЗАПУСК.md](ЗАПУСК.md). Проверки: [checks/README.md](docs/checks/README.md).
 
 Инструкции по сценариям агента находятся в `backend/app/agent/skills/`, инструменты — в `tools/`. По запросу графика агент строит столбчатое сравнение медиан записанных измерений. Основной API — `/api/agent/*`, заголовок чата — `X-Agent-Chat`. История остаётся в существующей таблице `rag_chats`, чтобы сохранить прежние диалоги.

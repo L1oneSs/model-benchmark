@@ -167,9 +167,9 @@
     min-height: 3.1rem;
     background: v.$accent;
     border: 1px solid transparent;
-    color: #fff;
+    color: var(--primary-foreground);
 
-    &:hover:not(:disabled) { background: #354d70; }
+    &:hover:not(:disabled) { background: var(--primary); }
   }
 
   &__progress {

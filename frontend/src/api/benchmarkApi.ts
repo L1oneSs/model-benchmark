@@ -7,6 +7,7 @@ import type {
   MeasurementPage,
   MeasurementPayload,
   Recommendation,
+  ExperimentStatistics,
 } from '../benchmark/types';
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
@@ -58,6 +59,16 @@ export const fetchSummary = (
   backend?: string,
 ): Promise<Record<Approach, ApproachSummary | null>> =>
   request(`/api/measurements/summary?experiment_key=${encodeURIComponent(experimentKey)}&window=${window}${backend ? `&backend=${encodeURIComponent(backend)}` : ''}`);
+
+export const fetchExperimentStatistics = (experimentKey: string, window = 10): Promise<ExperimentStatistics> =>
+  request(`/api/measurements/statistics?experiment_key=${encodeURIComponent(experimentKey)}&window=${window}`);
+
+export interface PlotObservation {
+  id: number; approach: Approach; model: string; backend: string | null;
+  metrics: Record<string, number>; created_at: string;
+}
+export const fetchPlotData = (key: string, window = 30): Promise<{experiment: string; window: number; observations: PlotObservation[]}> =>
+  request(`/api/measurements/plot-data?experiment_key=${encodeURIComponent(key)}&window=${window}`);
 
 export const fetchRecommendations = (): Promise<Recommendation[]> =>
   request<Recommendation[]>('/api/recommendations');

@@ -59,6 +59,9 @@ services:
   backend:
     build:
       context: ./backend
+      args:
+        STAND_GIT_COMMIT: ${STAND_GIT_COMMIT:-}
+        STAND_REPOSITORY: ${STAND_REPOSITORY:-}
     container_name: mb-backend
     restart: unless-stopped
     volumes:
@@ -85,6 +88,9 @@ services:
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
         VITE_MODEL_SOURCE: ${VITE_MODEL_SOURCE:-cdn}
+        STAND_GIT_COMMIT: ${STAND_GIT_COMMIT:-}
+        STAND_GIT_DIRTY: ${STAND_GIT_DIRTY:-}
+        STAND_REPOSITORY: ${STAND_REPOSITORY:-}
     container_name: mb-frontend
     restart: unless-stopped
     depends_on:

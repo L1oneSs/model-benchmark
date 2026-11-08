@@ -1,4 +1,10 @@
-.PHONY: up down logs rebuild reset models export-csv
+.PHONY: up down logs rebuild reset models export-csv smoke experiment
+
+smoke:        ## Проверка сервисов, настоящего USE/WASM и сохранения метрик
+	node checks/validate-stand.mjs --smoke
+
+experiment:   ## Контроль стенда: 20 прогревов, 10 измерений USE/WASM и отдельный CPU-профиль
+	node checks/validate-stand.mjs
 
 up:            ## Поднять весь стенд
 	docker compose up -d --build

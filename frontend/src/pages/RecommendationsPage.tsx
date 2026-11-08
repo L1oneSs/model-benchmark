@@ -1,3 +1,4 @@
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { useState } from 'react';
 
 import { AgentChat } from '../components/AgentChat';
@@ -19,26 +20,18 @@ export function RecommendationsPage() {
         </p>
       </header>
 
-      <div className="subtabs" aria-label="Вид рекомендаций">
-        <button
-          type="button"
-          aria-pressed={subTab === 'table'}
-          className={`subtabs__item${subTab === 'table' ? ' subtabs__item--active' : ''}`}
-          onClick={() => setSubTab('table')}
-        >
+      <Tabs value={subTab} onValueChange={value=>setSubTab(value as SubTab)}>
+      <TabsList className="mb-5" aria-label="Вид рекомендаций">
+        <TabsTrigger value="table">
           <Icon name="book" /> Сравнение подходов
-        </button>
-        <button
-          type="button"
-          aria-pressed={subTab === 'bot'}
-          className={`subtabs__item${subTab === 'bot' ? ' subtabs__item--active' : ''}`}
-          onClick={() => setSubTab('bot')}
-        >
+        </TabsTrigger>
+        <TabsTrigger value="bot">
           <Icon name="spark" /> Агент
-        </button>
-      </div>
-
-      {subTab === 'table' ? <RecommendationsTable /> : <AgentChat />}
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="table"><RecommendationsTable /></TabsContent>
+      <TabsContent value="bot"><AgentChat /></TabsContent>
+      </Tabs>
     </>
   );
 }

@@ -367,6 +367,8 @@ export async function runTextClassification(text: string, backend?: TfBackend): 
         memory_mb: heapDelta(heapBefore),
       }),
       output_summary: `Тональность ${label}`,
+      metadata: {anchors: ANCHORS, similarities: {positive, negative}, embedding_dimensions: vector.length,
+        decision: 'positive if positive cosine >= negative cosine; otherwise negative'},
       model_name: USE_MODEL_NAME,
       settings,
       status: 'ok',

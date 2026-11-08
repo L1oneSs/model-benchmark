@@ -34,6 +34,7 @@ class CompareArgs(StatisticsArgs):
 
 
 class ChartArgs(StatisticsArgs):
+    kind: Literal["bar", "line", "scatter"] = "bar"
     renderer: Literal["html", "python_static", "python_interactive"] = "html"
     statistic: Literal["median", "mean"] = "median"
     metric: Literal["inference_ms", "first_token_ms", "load_ms", "total_ms", "memory_mb", "all"] = "inference_ms"

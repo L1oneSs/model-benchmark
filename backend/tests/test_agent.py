@@ -207,3 +207,10 @@ class PlannerTests(unittest.IsolatedAsyncioTestCase):
             {"function": {"name": "calculate_statistics", "arguments": {"experiment_key": "text", "approach": "gemini_nano"}}}]}],
             question="Медиана для Gemini Nano", tool_result={"groups": []})
         self.assertEqual(planner.tools.execute.call_args.args[1]["approach"], "gemini_nano")
+
+    async def test_effect_size_request_is_routed_to_statistics(self):
+        await self.collect([{'complete': True, 'tool_calls': [
+            {'function': {'name': 'calculate_statistics', 'arguments': {'experiment_key': 'text'}}}]}],
+            question='Дельта Клиффа и p-value для text', tool_result={'groups': [], 'comparisons': []})
+        variants = self.payloads[0]['format']['properties']['calls']['items']['anyOf']
+        self.assertEqual([t['properties']['name']['const'] for t in variants], ['calculate_statistics'])

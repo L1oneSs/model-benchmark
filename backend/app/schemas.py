@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 Approach = Literal["tensorflow_js", "gemini_nano"]
 RunStatus = Literal["ok", "error", "unsupported"]
@@ -21,6 +21,7 @@ class MeasurementIn(BaseModel):
     settings: dict[str, Any] = Field(default_factory=dict)
     metrics: dict[str, float] = Field(default_factory=dict)
     environment: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
     input_summary: str = ""
     output_summary: str = ""
     status: RunStatus = "ok"
@@ -44,6 +45,7 @@ class MeasurementOut(BaseModel):
     settings: dict[str, Any]
     metrics: dict[str, float]
     environment: dict[str, Any]
+    metadata: dict[str, Any] = Field(default_factory=dict, validation_alias=AliasChoices('provenance', 'metadata'))
     input_summary: str
     output_summary: str
     status: RunStatus
@@ -65,6 +67,7 @@ class RecommendationOut(BaseModel):
     title: str
     task_type: str
     tfjs_verdict: str
+    onnx_verdict: str = ''
     gemini_verdict: str
     comment: str
     sort_order: int
@@ -75,6 +78,7 @@ class RecommendationPatch(BaseModel):
     title: str | None = None
     task_type: str | None = None
     tfjs_verdict: str | None = None
+    onnx_verdict: str | None = None
     gemini_verdict: str | None = None
     comment: str | None = None
     sort_order: int | None = None
@@ -105,7 +109,7 @@ class ChartPoint(BaseModel):
 
 
 class AgentChart(BaseModel):
-    kind: Literal["bar"] = "bar"
+    kind: Literal["bar", "line", "scatter"] = "bar"
     renderer: Literal["html", "python_static", "python_interactive"] = "html"
     statistic: Literal["median", "mean"] = "median"
     artifact_url: str | None = Field(default=None, pattern=r"^/api/agent/charts/[a-f0-9]{32}\.(png|html)$")

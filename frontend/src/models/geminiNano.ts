@@ -263,6 +263,7 @@ async function runPromptTask(
         memory_mb: heapDelta(heapBefore),
       }),
       output_summary: moderation ? formatModerationFlags(moderation) : answer.trim().slice(0, 220),
+      metadata: {request: {system_prompt: systemPrompt, user_prompt: userPrompt}, output_raw: answer},
       model_name: NANO_MODEL_NAME,
       settings: moderation ? { ...settings, category_flags: moderation } : settings,
       status: 'ok',
@@ -307,6 +308,8 @@ const failure = (settings: Record<string, unknown>, error: unknown): RunOutcome 
 /** Эксперимент 1: классификация тональности текста.
  *  Вход тот же, что получает TensorFlow.js. */
 export async function runTextClassification(text: string): Promise<RunOutcome> {
+  const systemPrompt = 'You are a sentiment classifier. Reply with exactly one word: positive, negative or neutral. No explanation.';
+  const userPrompt = `Classify the sentiment of this text: ${text}`;
   const settings = { ...WEB_SETTINGS, input_language: hasCyrillic(text) ? 'ru' : 'en' };
   const api = getApi();
   if (!api) return unsupported(settings, availabilityHint('unavailable'));
@@ -321,14 +324,13 @@ export async function runTextClassification(text: string): Promise<RunOutcome> {
   try {
     const createStarted = now();
     session = await createSession(api, {
-      systemPrompt:
-        'You are a sentiment classifier. Reply with exactly one word: positive, negative or neutral. No explanation.',
+      systemPrompt,
     });
     const loadMs = elapsed(createStarted);
 
     const { text: answer, firstChunkMs, totalMs } = await streamWithFirstChunk(
       session,
-      `Classify the sentiment of this text: ${text}`,
+      userPrompt,
     );
 
     return {
@@ -339,6 +341,7 @@ export async function runTextClassification(text: string): Promise<RunOutcome> {
         memory_mb: heapDelta(heapBefore),
       }),
       output_summary: `Тональность ${answer.trim().toLowerCase().slice(0, 60)}`,
+      metadata: {request: {system_prompt: systemPrompt, user_prompt: userPrompt}, output_raw: answer},
       model_name: NANO_MODEL_NAME,
       settings,
       status: 'ok',
@@ -775,6 +778,8 @@ async function runImageTask(
         memory_mb: heapDelta(heapBefore),
       }),
       output_summary: facesCount !== null ? `Лиц: ${facesCount}` : counts ? formatObjectCounts(counts) : answer.trim().slice(0, summaryLimit),
+      metadata: {request: {system_prompt: systemPrompt, user_prompt: prompt, image_width: image.naturalWidth,
+        image_height: image.naturalHeight}, output_raw: answer},
       model_name: NANO_MODEL_NAME,
       settings: facesCount !== null ? { ...settings, faces_count: facesCount, max_faces: 20 }
         : counts ? { ...settings, objects: counts, objects_count: Object.values(counts).reduce((sum, count) => sum + count, 0) } : settings,

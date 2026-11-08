@@ -1,8 +1,9 @@
 import type { AgentChart } from '../benchmark/types';
+import { AgentEChart } from './charts/AgentEChart';
 
 const labels: Record<AgentChart['metric'], string> = {
   inference_ms: 'Инференс', first_token_ms: 'Первое предсказание',
-  load_ms: 'Загрузка модели', total_ms: 'Полное время', memory_mb: 'Память JS heap',
+  load_ms: 'Загрузка модели', total_ms: 'Полное время', memory_mb: 'Память (изменение JS-кучи)',
 };
 
 export function AgentCharts({ charts = [] }: { charts?: AgentChart[] }) {
@@ -19,21 +20,9 @@ export function AgentCharts({ charts = [] }: { charts?: AgentChart[] }) {
         <a href={url} target="_blank" rel="noopener noreferrer">Открыть график / сохранить файл</a>
       </figure>;
     }
-    const maximum = Math.max(...chart.points.map(point => point.value), 0);
-    const minimum = Math.min(...chart.points.map(point => point.value), 0);
-    const range = maximum - minimum || 1;
     return <figure className="agent-chart" key={index}>
       <figcaption>{chart.title} · {labels[chart.metric]} ({chart.unit})</figcaption>
-      <ul aria-label="Медианы измерений; шкала включает ноль">
-        {chart.points.map((point, row) => <li key={row}>
-          <span className="agent-chart__label">{point.label}</span>
-          <span className="agent-chart__track" aria-hidden="true">
-            <span style={{ left: `${(Math.min(point.value, 0) - minimum) / range * 100}%`, width: `${Math.abs(point.value) / range * 100}%` }} />
-            <i style={{ left: `${-minimum / range * 100}%` }} />
-          </span>
-          <span className="agent-chart__value">{point.value.toLocaleString('ru-RU', { maximumFractionDigits: 3 })} {chart.unit}<small>n = {point.samples}</small></span>
-        </li>)}
-      </ul>
+      <AgentEChart chart={chart}/>
     </figure>;
   })}</>;
 }

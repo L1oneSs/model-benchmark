@@ -67,7 +67,7 @@ def render_numeric_answer(question, sources):
     if re.search(r"рекомендац|таблиц", text):
         return None
     comparison = bool(re.search(r"сравн|сопостав|compare", text) and re.search(r"сери|series", text))
-    stats = bool(re.search(r"медиан|статист|median|statistics", text))
+    stats = bool(re.search(r"медиан|статист|median|statistics|клифф|cliff|p[-_ ]?value|p95|iqr|значим|величин.{0,8}эффект|доверительн", text))
     if not comparison and not stats:
         return None
     tool = "compare_series" if comparison else "calculate_statistics"
@@ -102,7 +102,9 @@ def render_numeric_answer(question, sources):
                     f"Разница: {'+' if delta > 0 else ''}{number(delta)} мс{relative}; {direction}. "
                     f"Прогонов: {change['first_samples']} → {change['second_samples']}. [{index}]")
         else:
-            chosen = [name for name, (_, _, pattern) in METRICS.items() if re.search(pattern, text)] or list(METRICS)
+            chosen = [name for name, (_, _, pattern) in METRICS.items() if re.search(pattern, text)]
+            if not chosen:
+                chosen = ['inference_ms'] if re.search(r'клифф|cliff|p[-_ ]?value|значим|величин.{0,8}эффект', text) else list(METRICS)
             if not data["groups"]:
                 lines.append(f"Нет успешных прогонов для выбранного эксперимента и фильтров. [{index}]")
             for group in data["groups"]:
@@ -114,9 +116,33 @@ def render_numeric_answer(question, sources):
                 for metric in chosen:
                     label, unit, _ = METRICS[metric]
                     value = group["metrics"].get(metric)
-                    values.append(f"{label}: медиана {number(value['median'])} {unit}, n={value['samples']}"
-                                  if value else f"{label}: нет измерений")
+                    if value:
+                        detail = f"{label}: медиана {number(value['median'])} {unit}, n={value['samples']}"
+                        if 'iqr' in value:
+                            detail += f", p95 {number(value['p95'])}, IQR {number(value['iqr'])} {unit}"
+                        if value.get('ci95') is not None:
+                            detail += f", 95% ДИ медианы [{number(value['ci95'][0])}; {number(value['ci95'][1])}] {unit}"
+                        values.append(detail)
+                    else:
+                        values.append(f"{label}: нет измерений")
                 lines.append(caption + ":\n" + "; ".join(values) + f". [{index}]")
+            for item in data.get('comparisons', []):
+                if item['metric'] not in chosen:
+                    continue
+                a, b = item['a'], item['b']
+                label = METRICS[item['metric']][0]
+                p = item['p_value']
+                p_text = ('< 0,0001' if p < .0001 else f'{p:.4f}') if p is not None else 'недостаточно данных'
+                adjusted = item.get('p_value_adjusted')
+                correction = f", p с поправкой Холма={adjusted:.4g}" if adjusted is not None else ''
+                lines.append(f"{label}: A={a['model']} ({a['backend'] or 'встроенный API'}), "
+                             f"B={b['model']} ({b['backend'] or 'встроенный API'}): "
+                             f"δ Клиффа={number(item['cliffs_delta'])}, p-value={p_text}{correction}; "
+                             f"измерений A/B: {item['n_a']}/{item['n_b']}. [{index}]")
+            if data.get('comparisons'):
+                lines.append('Сравнения используют отдельные успешные измерения. Манна-Уитни предполагает независимые наблюдения; '
+                             'одинаковые входы и условия автоматически не проверяются. Отрицательная δ означает меньшие '
+                             'значения у A, а не процент ускорения. Зависимые повторы могут преувеличивать значимость.')
         if data.get("truncated"):
             lines.append("Выборка ограничена: часть прогонов не вошла в расчёт.")
     if any(s.source_key == "step_limit" for s in sources):

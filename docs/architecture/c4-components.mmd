@@ -1,0 +1,41 @@
+C4Component
+    title Измерительная часть стенда - C4, уровень компонентов браузерного приложения
+
+    Person(researcher, "Исследователь", "Задаёт входные данные и параметры серии")
+    Container_Ext(frontend, "frontend", "nginx", "Раздаёт приложение, изображения, WASM и локальные веса")
+    Container_Ext(backend, "backend", "FastAPI", "Сохраняет результаты в PostgreSQL; выдаёт записи и выгрузки")
+    System_Ext(chrome_ai, "Встроенные ИИ-API Chrome", "Prompt, Summarizer, Rewriter, Writer, Proofreader, Translator, LanguageDetector")
+    System_Ext(remote_weights, "Хранилища библиотечных моделей", "Google / TF Hub и Hugging Face")
+
+    Container_Boundary(browser, "Веб-приложение в браузере") {
+        Component(ui, "Интерфейс экспериментов", "StandPage, BenchmarkPanel, ModelSelector", "Принимает тексты и изображения, выбирает реализации и параметры")
+        Component(registry, "Реестр экспериментов", "benchmark/experiments.ts", "Описывает 14 задач и связывает их с адаптерами")
+        Component(runner, "Оркестратор серий", "benchmark/runner.ts", "Последовательно выполняет повторы; при настройке исключает первый вызов")
+        Component(metrics, "Измерения и среда", "benchmark/metrics.ts", "performance.now(), изменение JS-кучи, сведения о браузере и устройстве")
+        Component(library, "Библиотечный адаптер", "models/tensorflow.ts", "Запускает модели TensorFlow.js и Transformers.js / ONNX Runtime Web")
+        Component(builtin, "Адаптер встроенных API", "models/geminiNano.ts", "Создаёт сессии и вызывает встроенные ИИ-функции браузера")
+        Component(diagnostics, "Диагностика доступности", "builtinAi.ts, useNanoModel.ts, EnvironmentPanel", "Проверяет API, отслеживает загрузку модели, сохраняет отдельную диагностику")
+        Component(api_client, "Клиент измерений", "api/benchmarkApi.ts", "Передаёт серии на сервер и получает сохранённые результаты")
+        Component(results, "Просмотр результатов", "MeasurementsPage, ResultsTable", "Показывает записи, сводки, фильтры и ссылки на CSV")
+    }
+
+    Rel(researcher, ui, "Настраивает и запускает эксперимент")
+    Rel(ui, registry, "Получает описание выбранной задачи")
+    Rel(ui, runner, "Передаёт вход и настройки серии")
+    Rel(runner, registry, "Вызывает реализацию задачи")
+    Rel(registry, library, "Выполняет библиотечный вариант")
+    Rel(registry, builtin, "Выполняет встроенный вариант")
+    Rel(runner, metrics, "Получает снимок среды в начале серии")
+    Rel(library, metrics, "Измеряет время и изменение JS-кучи")
+    Rel(builtin, metrics, "Измеряет время и изменение JS-кучи")
+    Rel(library, frontend, "Читает локальные веса и WASM", "HTTP")
+    Rel(library, remote_weights, "Загружает модели при использовании внешних источников", "HTTPS")
+    Rel(builtin, chrome_ai, "Выполняет инференс на устройстве", "JavaScript API")
+    Rel(diagnostics, chrome_ai, "Проверяет доступность и подготовку моделей", "JavaScript API")
+    Rel(diagnostics, api_client, "При запросе передаёт диагностику builtin_availability")
+    Rel(ui, api_client, "Сохраняет результаты завершённой серии")
+    Rel(api_client, backend, "POST /api/measurements; GET записи и сводки", "HTTP / JSON")
+    Rel(results, api_client, "Запрашивает измерения и статистику")
+    Rel(researcher, results, "Проверяет и выгружает результаты")
+
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")

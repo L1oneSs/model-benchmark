@@ -1,3 +1,4 @@
+import { Button } from '../components/ui/button';
 import { useEffect, useRef, useState } from 'react';
 
 import { BenchmarkPanel, type BenchmarkHandle } from '../components/BenchmarkPanel';
@@ -6,6 +7,9 @@ import { EXPERIMENTS } from '../benchmark/experiments';
 import { useNanoModel } from '../models/useNanoModel';
 import { availableBackends, type TfBackend } from '../models/tensorflow';
 import { Icon } from '../components/Icon';
+import { Input } from '../components/ui/input';
+import { Badge } from '../components/ui/badge';
+import { Search } from 'lucide-react';
 
 interface Props {
   onMeasurementsSaved: () => void;
@@ -21,6 +25,8 @@ export function StandPage({ onMeasurementsSaved }: Props) {
   const nano = useNanoModel();
   const [availableTfBackends, setAvailableTfBackends] = useState<TfBackend[]>([]);
   const [backendsLoading, setBackendsLoading] = useState(true);
+  const [search,setSearch]=useState('');
+  const experiments=EXPERIMENTS.filter(e=>`${e.title} ${e.description}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
 
   const run = async (keys: string[]) => {
     if (busy.current || backendsLoading) return;
@@ -48,6 +54,7 @@ export function StandPage({ onMeasurementsSaved }: Props) {
     <>
       <header className="page-header">
         <h1>Стенд</h1>
+        <p className="page-header__hint">Настройте входные данные и сравните модели в одинаковых условиях.</p>
       </header>
 
       <EnvironmentPanel onSaved={onMeasurementsSaved} backends={availableTfBackends}
@@ -57,15 +64,17 @@ export function StandPage({ onMeasurementsSaved }: Props) {
         onNanoDownload={nano.start} />
 
       <div className="stand-actions">
-        <div><h2>Эксперименты</h2></div>
-        <button type="button" className="panel__run" disabled={running || backendsLoading}
-          onClick={() => void run(EXPERIMENTS.map(experiment => experiment.key))}>
-          <Icon name="play" size={16} />{running ? 'Идёт прогон' : 'Запустить все'}
-        </button>
+        <div className="flex items-center gap-3"><h2>Эксперименты</h2><Badge variant="secondary">{experiments.length}</Badge></div>
+        <label className="relative ml-auto min-w-52"><Search size={15} className="absolute left-3 top-3 text-muted-foreground"/><Input className="pl-9" aria-label="Найти эксперимент" placeholder="Найти эксперимент…" value={search} onChange={e=>setSearch(e.target.value)} disabled={running}/></label>
+        <Button variant="outline" type="button" className="panel__run" disabled={running || backendsLoading || !experiments.length}
+          onClick={() => void run(experiments.map(experiment => experiment.key))}>
+          <Icon name="play" size={16} />{running ? 'Идёт прогон' : search.trim()?'Запустить показанные':'Запустить все'}
+        </Button>
         <p role="status">{progress}</p>
       </div>
 
-      {EXPERIMENTS.map((experiment) => (
+      {!experiments.length&&<div className="notice">По этому запросу экспериментов не найдено.</div>}
+      {experiments.map((experiment) => (
         <BenchmarkPanel
           key={experiment.key}
           experiment={experiment}

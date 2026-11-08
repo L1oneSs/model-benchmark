@@ -109,7 +109,7 @@ class AgentPlanner:
         elif not re.search(r"рекомендац|таблиц", text):
             if re.search(r"сравн|сопостав|compare", text) and re.search(r"сери|series", text):
                 scoped = {"compare_series"}
-            elif re.search(r"медиан|статист|median|statistics", text):
+            elif re.search(r"медиан|статист|median|statistics|клифф|cliff|p[-_ ]?value|p95|iqr|значим|величин.{0,8}эффект|доверительн", text):
                 scoped = {"calculate_statistics"}
         definitions = [t for t in TOOLS if scoped is None or t["function"]["name"] in scoped]
         messages = [{"role": "system", "content": planning_instructions(t["function"]["name"] for t in definitions) +

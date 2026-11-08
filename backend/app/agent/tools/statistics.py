@@ -1,27 +1,21 @@
 import math
-import statistics
 from sqlalchemy import select, desc
 from app.db.models import Measurement
+from app.experiment_statistics import summarize_groups, comparisons, STATISTICS_NOTE
 
 def summarize(rows):
-    groups = {}
-    for row in rows:
-        key = (row.approach, row.model_name, row.settings.get("backend"))
-        groups.setdefault(key, []).append(row)
-    result = []
-    for (approach, model, backend), group in groups.items():
-        metrics = {}
-        for name in ("load_ms", "first_token_ms", "inference_ms", "total_ms", "memory_mb"):
-            values = [float(r.metrics[name]) for r in group if isinstance(r.metrics.get(name), (int, float))
-                      and not isinstance(r.metrics[name], bool) and math.isfinite(r.metrics[name])]
-            if values:
-                metrics[name] = {"median": round(statistics.median(values), 3),
-                                 "mean": round(statistics.fmean(values), 3),
-                                 "stdev": round(statistics.stdev(values), 3) if len(values) > 1 else 0,
-                                 "samples": len(values)}
-        result.append({"approach": approach, "model": model, "backend": backend,
-                       "runs": len(group), "metrics": metrics})
-    return result
+    # Keep the agent's bounded evidence payload stable as the UI gains diagnostics.
+    # The complete exploratory report is available from /api/measurements/statistics.
+    fields = {'median', 'mean', 'min', 'max', 'stdev', 'samples', 'p95', 'iqr', 'ci95'}
+    return [{**g, 'metrics': {metric: {k: v for k, v in summary.items() if k in fields}
+                             for metric, summary in g['metrics'].items()}}
+            for g in summarize_groups(rows)]
+
+
+def compact_comparisons(rows):
+    fields = {'a', 'b', 'metric', 'unit', 'n_a', 'n_b', 'cliffs_delta', 'p_value',
+              'u_statistic', 'method', 'p_value_adjusted'}
+    return [{k: v for k, v in item.items() if k in fields} for item in comparisons(rows)]
 
 
 
@@ -80,6 +74,7 @@ class StatisticsTools:
     def calculate_statistics(self, args):
         rows, truncated = self.rows(args, successful=True)
         return {"experiment": args.experiment_key, "run_index": args.run_index, "groups": summarize(rows), "truncated": truncated,
+                'comparisons': compact_comparisons(rows), 'statistics_note': STATISTICS_NOTE,
                 'measurement_ids': [r.id for r in rows if hasattr(r, 'id')],
                 'filters': {name: getattr(args, name) for name in ('approach', 'backend', 'model_name', 'run_index')},
                 "experiment_title": getattr(rows[0], "experiment_title", args.experiment_key) if rows else args.experiment_key,

@@ -1,27 +1,27 @@
 // Нейтральные поверхности и приглушённые синие акценты.
 
-$sidebar-bg:      #eef0f4;
-$sidebar-text:    #536073;
-$sidebar-active:  #dde5f1;
+$sidebar-bg:      var(--sidebar);
+$sidebar-text:    var(--sidebar-foreground);
+$sidebar-active:  var(--accent);
 
-$page-bg:         #f6f7f9;
-$surface:         #ffffff;
-$surface-muted:   #f1f3f6;
-$border:          #dce1e8;
+$page-bg:         var(--background);
+$surface:         var(--card);
+$surface-muted:   var(--muted);
+$border:          var(--border);
 
-$text:            #283344;
-$text-muted:      #616c7c;
+$text:            var(--foreground);
+$text-muted:      var(--muted-foreground);
 
-$accent:          #45618a;
-$accent-soft:     #eaf0f8;
+$accent:          var(--primary);
+$accent-soft:     var(--accent);
 
-$tfjs:            #c2571a;
-$gemini:          #45618a;
-$onnx:            #6d4bc3;
+$tfjs:            var(--tfjs);
+$gemini:          var(--gemini);
+$onnx:            var(--onnx);
 
-$ok:              #2f6f5e;
-$warn:            #9a6a13;
-$error:           #b23a34;
+$ok:              var(--success);
+$warn:            var(--warning);
+$error:           var(--destructive);
 
 $radius:          16px;
 $radius-sm:       9px;

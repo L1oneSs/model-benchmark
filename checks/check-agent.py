@@ -19,6 +19,18 @@ if selected != [""]:
 assert questions, "No checks selected"
 with httpx.Client(base_url=base, timeout=600, headers={"X-Agent-Chat": str(uuid4())}) as client:
     try:
+        # Check the non-streaming endpoint too; the other scenarios exercise NDJSON.
+        if any(tool == "read_recommendations" for _, tool in questions):
+            response = client.post("/api/agent/ask", json={
+                "question": questions[0][0], "thinking": False,
+            })
+            response.raise_for_status()
+            result = response.json()
+            assert result["answer"].strip(), result
+            assert result["sources"] and all(
+                source["source_type"] == "recommendation" for source in result["sources"]
+            ), result
+            client.delete("/api/agent/history").raise_for_status()
         for question, expected in questions:
             started = time.perf_counter()
             with client.stream("POST", "/api/agent/ask?stream=true", json={"question": question, "thinking": False}) as response:

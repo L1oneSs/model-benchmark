@@ -30,9 +30,9 @@
     &--primary {
       background: v.$accent;
       border-color: v.$accent;
-      color: #fff;
+      color: var(--primary-foreground);
 
-      &:hover { background: #354d70; }
+      &:hover { background: var(--primary); }
     }
   }
 
@@ -86,6 +86,8 @@
 
   &__card-title { margin-bottom: 0.5rem; }
 
+  &__actions { display: flex; flex-wrap: wrap; gap: .6rem; }
+
   &__model {
     font-size: 0.82rem;
     color: v.$text-muted;
@@ -127,9 +129,15 @@
     th {
       @include m.label;
       border-bottom-width: 1px;
-      background: #f8f9fb;
-      font-size: 0.67rem;
-      white-space: nowrap;
+      background: var(--muted);
+      font-size: 0.75rem;
+      line-height: 1.4;
+      font-weight: 600;
+      white-space: normal;
+      text-transform: none;
+      letter-spacing: normal;
+      vertical-align: middle;
+      overflow-wrap: normal;
     }
 
     .results__sort {
@@ -141,17 +149,32 @@
       text-transform: inherit;
       letter-spacing: inherit;
       cursor: pointer;
+      width: 100%;
+      height: auto;
+      min-height: 0;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: normal;
+      text-align: left;
+      border-radius: 0;
+      box-shadow: none;
+
+      > span:first-child { min-width: 0; }
+      &:hover { color: v.$accent; background: transparent; }
     }
 
+    .results__sort-direction { flex-shrink: 0; width: 0.8rem; color: v.$text-muted; }
+
     td { font-variant-numeric: tabular-nums; }
-    tbody tr:hover { background: #fafbfc; }
+    tbody tr:hover { background: var(--card); }
   }
 
   &__col--approach { width: 9rem; }
   &__col--settings { width: 15rem; }
   &__col--inference_ms { width: 9rem; }
   &__col--first_token_ms { width: 11rem; }
-  &__col--memory_mb { width: 8rem; }
+  &__col--memory_mb { width: 12rem; }
   &__col--output { width: 22rem; }
   &__col--created_at { width: 12rem; }
 

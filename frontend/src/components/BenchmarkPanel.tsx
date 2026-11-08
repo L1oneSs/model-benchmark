@@ -1,3 +1,6 @@
+import { Textarea } from './ui/textarea';
+import { Button } from './ui/button';
+import { Card } from './ui/card';
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { ModelSelector, type ModelSelectorProps } from './ModelSelector';
 import { SearchDocumentsInput, initialSearchInput, serializeSearchInput } from './SearchDocumentsInput';
@@ -69,6 +72,7 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
   const [expanded, setExpanded] = useState(false);
 
   const imageRef = useRef<HTMLImageElement>(null);
+  const imageFile = useRef<File | undefined>(undefined);
 
   const loadLatest = useCallback(async () => {
     try {
@@ -85,6 +89,7 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
   const handleFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    imageFile.current = file;
     setImageUrl(URL.createObjectURL(file));
     setImageLabel(file.name);
   };
@@ -102,7 +107,7 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
     if (!element || !element.complete || element.naturalWidth === 0) {
       throw new Error('Изображение ещё не загрузилось, подождите секунду и повторите');
     }
-    return { kind: 'image', element, label: imageLabel };
+    return { kind: 'image', element, label: imageLabel, file: imageFile.current };
   };
 
   const start = async () => {
@@ -175,7 +180,7 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
   };
 
   return (
-    <article className={`panel${running ? ' panel--running' : ''}`}>
+    <Card role="article" className={`panel gap-0 py-0${running ? ' panel--running' : ''}`}>
       <header className="panel__header">
         <div className="panel__heading">
           <h3 className="panel__title">{experiment.title}</h3>
@@ -231,12 +236,12 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
               <div className="panel__qna">
                 <label>
                   <span>Вопрос</span>
-                  <textarea value={question} onChange={event => setQuestion(event.target.value)}
+                  <Textarea value={question} onChange={event => setQuestion(event.target.value)}
                     disabled={disabled || running} rows={2} placeholder="Введите вопрос по контексту" />
                 </label>
                 <label>
                   <span>Контекст</span>
-                  <textarea value={context} onChange={event => setContext(event.target.value)}
+                  <Textarea value={context} onChange={event => setContext(event.target.value)}
                     disabled={disabled || running} rows={5} placeholder="Введите текст, в котором нужно найти ответ" />
                 </label>
                 {usesPromptForGemini && hasCyrillic(`${question} ${context}`) && (
@@ -245,7 +250,7 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
               </div>
             ) : experiment.inputKind === 'text' ? (
               <>
-                <textarea
+                <Textarea
                   value={text}
                   onChange={handleTextChange}
                   disabled={disabled || running}
@@ -285,9 +290,9 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
           </div>
 
           <div className="panel__actions">
-            <button type="button" className="panel__run" onClick={() => void handleRun()} disabled={disabled || running}>
+            <Button variant="outline" type="button" className="panel__run" onClick={() => void handleRun()} disabled={disabled || running}>
               {running ? 'Идёт прогон' : 'Запуск'}
-            </button>
+            </Button>
             {(progress || error) && (
               <p className={`panel__progress${error ? ' panel__progress--error' : ''}`} role="status">
                 {error ?? progress}
@@ -297,7 +302,7 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
         </div>
       </section>
 
-      <button
+      <Button variant="outline"
         type="button"
         className="panel__dropdown"
         onClick={() => setExpanded((value) => !value)}
@@ -305,7 +310,7 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
       >
         <span>Результат последнего измерения</span>
         <span className="panel__chevron">{expanded ? '▴' : '▾'}</span>
-      </button>
+      </Button>
 
       {expanded && (
         <div className="panel__latest">
@@ -332,6 +337,6 @@ export function BenchmarkPanel({ ref, experiment, selector, disabled, onRun, sam
           })}
         </div>
       )}
-    </article>
+    </Card>
   );
 }

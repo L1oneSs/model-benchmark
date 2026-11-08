@@ -1,3 +1,4 @@
+import { Button } from './ui/button';
 import { useCallback, useEffect, useState } from 'react';
 
 import { collectEnvironment } from '../benchmark/metrics';
@@ -40,7 +41,7 @@ export function EnvironmentPanel({
 }) {
   const [environment, setEnvironment] = useState<Environment | null>(null);
   const [probes, setProbes] = useState<ApiProbe[]>([]);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
 
@@ -73,7 +74,7 @@ export function EnvironmentPanel({
   return (
     <section className="env">
       <header className="env__header">
-        <button
+        <Button variant="outline"
           type="button"
           className="env__toggle"
           onClick={() => setOpen((value) => !value)}
@@ -81,11 +82,12 @@ export function EnvironmentPanel({
         >
           <span className="env__chevron">{open ? '▾' : '▸'}</span>
           Среда прогона
-        </button>
-        <button type="button" className="env__save" onClick={() => void saveProbe()}
+        </Button>
+        {!open&&<span className="env__summary">{backendsLoading?'Проверяем бэкенды…':`Бэкенды TensorFlow.js: ${backends.length}`} · Gemini Nano: {nanoAvailable?'готов':'не готов'}</span>}
+        <Button variant="outline" type="button" className="env__save" onClick={() => void saveProbe()}
           disabled={busy || disabled} title="Сохранить диагностику встроенных ИИ-API и сведения об устройстве">
           {busy ? 'Записываю…' : 'Записать в датасет'}
-        </button>
+        </Button>
       </header>
 
       {open && (
@@ -146,9 +148,9 @@ export function EnvironmentPanel({
               />
             )}
             {!nanoAvailable && !nanoDownloading && (
-              <button type="button" className="env__nano-action" onClick={onNanoDownload} disabled={disabled}>
+              <Button variant="outline" type="button" className="env__nano-action" onClick={onNanoDownload} disabled={disabled}>
                 Загрузить модель
-              </button>
+              </Button>
             )}
           </section>
           </div>

@@ -28,6 +28,9 @@ echo  Поднимаю стенд. Первый запуск долгий: ка�
 echo  модели, около 3,2 ГБ. Последующие запуски занимают секунды.
 echo.
 
+if not defined STAND_GIT_COMMIT for /f %%G in ('git rev-parse HEAD 2^>nul') do set "STAND_GIT_COMMIT=%%G"
+git diff --quiet HEAD -- frontend backend 2>nul
+if errorlevel 1 set "STAND_GIT_DIRTY=true"
 docker compose up -d --build
 if errorlevel 1 (
   echo.
